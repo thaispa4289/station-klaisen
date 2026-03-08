@@ -1,0 +1,3279 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thai Spa — ระบบจองคิว</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FAF7F2;
+    --stone: #8B7D6B;
+    --deep: #2C2416;
+    --gold: #C8A96E;
+    --gold-light: #E8D5A3;
+    --sage: #7A8C6E;
+    --terracotta: #C4724A;
+    --smoke: #F0EBE3;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background-color: var(--cream);
+    color: var(--deep);
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: 'Playfair Display', serif;
+  }
+
+  /* =============================================
+     SIDEBAR — 3-tier responsive
+     Desktop  ≥1024px : full 260px
+     Tablet   769-1023px: icon-only 64px
+     Mobile   ≤768px  : hidden (bottom nav)
+     ============================================= */
+  .sidebar {
+    background: var(--deep);
+    min-height: 100vh;
+    width: 260px;
+    flex-shrink: 0;
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    transition: width 0.25s ease;
+    overflow: hidden;
+  }
+
+  .sidebar-logo {
+    border-bottom: 1px solid rgba(200,169,110,0.2);
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 24px;
+    color: rgba(250,247,242,0.6);
+    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .nav-item:hover {
+    color: var(--gold-light);
+    background: rgba(200,169,110,0.08);
+  }
+
+  .nav-item.active {
+    color: var(--gold);
+    border-left-color: var(--gold);
+    background: rgba(200,169,110,0.12);
+  }
+
+  .nav-icon { font-size: 18px; width: 22px; text-align: center; }
+  .nav-label { display: none; }  /* shown only on tablet via media query */
+  .nav-sidebar-text {}  /* full text — hidden on tablet */
+
+  @media (min-width: 769px) and (max-width: 1023px) {
+    .nav-sidebar-text { display: none; }
+    .nav-section-label { display: none; }
+  }
+
+  /* Main content */
+  .main { margin-left: 260px; min-height: 100vh; transition: margin-left 0.25s ease; }
+
+  .page { display: none; animation: fadeIn 0.3s ease; }
+  .page.active { display: block; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Cards */
+  .card {
+    background: white;
+    border-radius: 16px;
+    border: 1px solid rgba(139,125,107,0.12);
+    box-shadow: 0 2px 12px rgba(44,36,22,0.06);
+  }
+
+  /* KPI Cards */
+  .kpi-card {
+    background: white;
+    border-radius: 16px;
+    border: 1px solid rgba(139,125,107,0.12);
+    box-shadow: 0 2px 12px rgba(44,36,22,0.06);
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 80px; height: 80px;
+    border-radius: 0 16px 0 80px;
+    opacity: 0.08;
+  }
+
+  .kpi-card.gold::before { background: var(--gold); }
+  .kpi-card.sage::before { background: var(--sage); }
+  .kpi-card.terra::before { background: var(--terracotta); }
+
+  /* Form Inputs */
+  .form-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid rgba(139,125,107,0.2);
+    border-radius: 10px;
+    background: var(--smoke);
+    font-family: 'Sarabun', sans-serif;
+    font-size: 14px;
+    color: var(--deep);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+
+  .form-input:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(200,169,110,0.12);
+    background: white;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--stone);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    background: var(--deep);
+    color: var(--gold);
+    border: none;
+    padding: 12px 28px;
+    border-radius: 10px;
+    font-family: 'Sarabun', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-primary:hover { background: #3d3220; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(44,36,22,0.2); }
+
+  .btn-gold {
+    background: var(--gold);
+    color: var(--deep);
+    border: none;
+    padding: 12px 28px;
+    border-radius: 10px;
+    font-family: 'Sarabun', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-gold:hover { background: #b8953a; transform: translateY(-1px); }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--stone);
+    border: 1.5px solid rgba(139,125,107,0.3);
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-family: 'Sarabun', sans-serif;
+    font-weight: 500;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-outline:hover { border-color: var(--gold); color: var(--deep); }
+
+  .btn-danger {
+    background: #fee2e2;
+    color: #dc2626;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-family: 'Sarabun', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-danger:hover { background: #fca5a5; }
+
+  /* Step indicator */
+  .step-dot {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+    transition: all 0.3s;
+  }
+
+  .step-dot.done { background: var(--sage); color: white; }
+  .step-dot.active { background: var(--gold); color: var(--deep); }
+  .step-dot.pending { background: rgba(139,125,107,0.15); color: var(--stone); }
+
+  /* Status badges */
+  .badge {
+    display: inline-flex; align-items: center;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .badge-active { background: #dcfce7; color: #166534; }
+  .badge-done { background: #e0e7ff; color: #3730a3; }
+  .badge-cancel { background: #fee2e2; color: #dc2626; }
+
+  /* Table */
+  .table-row {
+    border-bottom: 1px solid rgba(139,125,107,0.1);
+    transition: background 0.15s;
+  }
+
+  .table-row:hover { background: rgba(200,169,110,0.04); }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(44,36,22,0.5);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-box {
+    background: white;
+    border-radius: 20px;
+    padding: 32px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modalIn 0.3s ease;
+  }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+
+  /* Time slot grid */
+  .time-slot {
+    padding: 8px 12px;
+    border: 1.5px solid rgba(139,125,107,0.2);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    text-align: center;
+    transition: all 0.15s;
+    background: white;
+  }
+
+  .time-slot:hover { border-color: var(--gold); background: rgba(200,169,110,0.08); }
+  .time-slot.selected { background: var(--deep); color: var(--gold); border-color: var(--deep); }
+  .time-slot.unavailable { background: #f3f4f6; color: #9ca3af; cursor: not-allowed; border-color: #e5e7eb; }
+
+  .time-slot.past { background: #f9f9f9; color: #d1d5db; cursor: not-allowed; border-color: #f0f0f0; text-decoration: line-through; }
+
+  @media (max-width: 640px) {
+    .time-slot {
+      padding: 12px 8px;
+      font-size: 14px;
+      font-weight: 600;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+    }
+    #timeSlotGrid {
+      grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)) !important;
+      gap: 8px !important;
+    }
+  }
+
+  /* Select styled */
+  select.form-input { cursor: pointer; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238B7D6B' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center;
+    padding-right: 36px;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    padding: 14px 20px; border-radius: 12px;
+    font-family: 'Sarabun', sans-serif; font-size: 14px; font-weight: 500;
+    z-index: 200; animation: slideUp 0.3s ease;
+    box-shadow: 0 8px 24px rgba(44,36,22,0.15);
+  }
+
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  .toast-success { background: var(--deep); color: var(--gold); }
+  .toast-error { background: #dc2626; color: white; }
+
+  /* Loading spinner */
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2px solid rgba(200,169,110,0.3);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Section header */
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .section-icon {
+    width: 40px; height: 40px;
+    background: rgba(200,169,110,0.12);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--smoke); }
+  ::-webkit-scrollbar-thumb { background: rgba(139,125,107,0.3); border-radius: 3px; }
+
+  /* ===== SETTINGS PAGE RESPONSIVE ===== */
+  .settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .settings-grid-full {
+    grid-column: 1 / -1;
+  }
+
+  /* GAS URL flex row */
+  .gas-url-row {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .gas-url-row input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .gas-url-row button {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Password grid */
+  .password-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* ===== REPORT PAGE RESPONSIVE ===== */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .report-charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  /* Report filter bar */
+  .report-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .report-filter-presets { display: flex; gap: 6px; flex-wrap: wrap; }
+  .report-preset-btn { font-size: 12px !important; padding: 7px 14px !important; }
+  .report-filter-pickers { display: flex; gap: 6px; }
+  .report-filter-pickers input { width: auto; }
+
+  @media (max-width: 640px) {
+    .report-filter-bar {
+      width: 100%;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .report-filter-presets {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .report-preset-btn {
+      text-align: center;
+      padding: 10px 4px !important;
+      font-size: 13px !important;
+    }
+    .report-filter-pickers {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    /* Hide bottom 3 KPI cards (customer counts) on mobile — show only revenue */
+    .kpi-grid .kpi-card:nth-child(n+4) { display: none; }
+    .kpi-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .kpi-grid .kpi-card { padding: 14px; }
+    .kpi-grid .kpi-card .font-display { font-size: 1.3rem; }
+  }
+
+  /* ===== BOOKING FORM RESPONSIVE ===== */
+  .booking-row-3col {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+
+  .booking-price-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  /* =============================================
+     TABLET icon-only sidebar (769px – 1023px)
+     ============================================= */
+  @media (min-width: 769px) and (max-width: 1023px) {
+    .sidebar {
+      width: 64px;
+    }
+    .main {
+      margin-left: 64px;
+    }
+    /* Hide text labels, logo text, logout area */
+    .sidebar-logo { padding: 16px 0; display: flex; justify-content: center; }
+    .sidebar-logo > div { flex-direction: column; align-items: center; gap: 0; }
+    .sidebar-logo .font-display,
+    .sidebar-logo div:last-child { display: none; }
+    .nav-item {
+      padding: 14px 0;
+      justify-content: center;
+      border-left: none;
+      border-bottom: 3px solid transparent;
+      flex-direction: column;
+      gap: 3px;
+      font-size: 9px;
+    }
+    .nav-item.active {
+      border-left-color: transparent;
+      border-bottom-color: var(--gold);
+    }
+    .nav-icon { width: auto; font-size: 20px; }
+    /* Show short label under icon */
+    .nav-label { display: block !important; font-size: 9px; color: inherit; }
+    #logoutArea { display: none !important; }
+    /* Layouts */
+    .settings-grid        { grid-template-columns: 1fr; }
+    .kpi-grid             { grid-template-columns: repeat(3, 1fr); }
+    .report-charts-grid   { grid-template-columns: 1fr; }
+    .booking-row-3col     { grid-template-columns: 1fr 1fr; }
+    .password-grid        { grid-template-columns: 1fr 1fr; }
+    .main-content         { padding: 24px 20px !important; }
+    .card.p-8             { padding: 24px !important; }
+    .section-header       { flex-wrap: wrap; gap: 10px; }
+    .list-section-header  { flex-wrap: wrap; gap: 8px; }
+    .list-section-header .btn-danger { flex-shrink: 0; }
+    /* Filter bar full width on tablet */
+    .report-filter-bar    { width: 100%; flex-wrap: wrap; }
+    .report-filter-presets { flex-wrap: wrap; }
+    /* Table horizontal scroll on narrow tablet */
+    .list-table-wrapper { overflow-x: auto; }
+    /* Top customers grid - 2 col on tablet */
+    #topCustomersGrid { grid-template-columns: repeat(2, 1fr) !important; }
+  }
+
+  /* =============================================
+     MOBILE (≤768px) — bottom nav, no sidebar
+     ============================================= */
+  @media (max-width: 768px) {
+    .sidebar        { display: none; }
+    .main           { margin-left: 0; }
+    .mobile-header  { display: flex !important; }
+    .main-content   { padding: 16px !important; padding-bottom: 76px !important; }
+  }
+
+  /* =============================================
+     MOBILE SMALL (≤640px) — single column
+     ============================================= */
+  @media (max-width: 640px) {
+    .card.p-8 { padding: 16px !important; }
+    /* All 2-col form grids → 1-col */
+    .card .grid.grid-cols-2 {
+      grid-template-columns: 1fr !important;
+    }
+    .settings-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    .kpi-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .kpi-grid .kpi-card {
+      padding: 16px;
+    }
+    .kpi-grid .kpi-card .font-display {
+      font-size: 1.5rem;
+    }
+    .report-charts-grid   { grid-template-columns: 1fr; }
+    .booking-row-3col     { grid-template-columns: 1fr; }
+    .gas-url-row          { flex-direction: column; }
+    .gas-url-row button   { width: 100%; }
+    .password-grid        { grid-template-columns: 1fr; }
+    .booking-price-row {
+      flex-direction: column;
+      align-items: stretch;
+      text-align: center;
+    }
+    .booking-price-row button { width: 100%; }
+    .service-add-grid { grid-template-columns: 1fr !important; }
+    .service-add-grid input:first-child { grid-column: unset !important; }
+    .list-section-header  { flex-wrap: wrap; gap: 12px; }
+    .list-section-header .btn-danger { width: 100%; }
+  }
+
+  /* ===== LIST PAGE MOBILE RESPONSIVE ===== */
+
+  /* Hide desktop table on mobile */
+  @media (max-width: 640px) {
+    .list-table-wrapper { display: none !important; }
+    .list-cards-wrapper { display: block !important; }
+
+    /* Filter bar: stack to 1 col */
+    .filter-grid {
+      grid-template-columns: 1fr !important;
+    }
+
+    /* Section header: wrap on small screens */
+    .list-section-header {
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .list-section-header .btn-danger {
+      width: 100%;
+    }
+  }
+
+  /* Show desktop table, hide cards on tablet+ */
+  @media (min-width: 641px) {
+    .list-table-wrapper { display: block; }
+    .list-cards-wrapper { display: none !important; }
+
+    /* Filter bar: 2 cols on tablet */
+    .filter-grid {
+      grid-template-columns: 1fr 1fr !important;
+    }
+    .filter-grid-clear {
+      grid-column: span 2;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .filter-grid {
+      grid-template-columns: 1fr 1fr auto !important;
+    }
+    .filter-grid-clear {
+      grid-column: unset;
+    }
+  }
+
+  /* Booking card (mobile) */
+  .booking-card {
+    background: white;
+    border-radius: 14px;
+    border: 1px solid rgba(139,125,107,0.13);
+    box-shadow: 0 2px 10px rgba(44,36,22,0.06);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .booking-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .booking-card-name {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--deep);
+  }
+
+  .booking-card-phone {
+    font-size: 12px;
+    color: var(--stone);
+    margin-top: 2px;
+  }
+
+  .booking-card-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 16px;
+    margin-bottom: 12px;
+  }
+
+  .booking-card-meta-item label {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--stone);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+  }
+
+  .booking-card-meta-item span {
+    font-size: 13px;
+    color: var(--deep);
+  }
+
+  .booking-card-price {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--sage);
+  }
+
+  .booking-card-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding-top: 10px;
+    border-top: 1px solid rgba(139,125,107,0.1);
+  }
+
+  .booking-card-actions button {
+    flex: 1;
+    min-width: 80px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: none;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  .booking-card-actions button:active { opacity: 0.75; }
+
+  .mobile-header {
+    display: none;
+    background: var(--deep);
+    padding: 12px 20px;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0; z-index: 30;
+  }
+
+  .drawer-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 45;
+  }
+
+  .drawer-open .sidebar { display: flex; z-index: 50; }
+  .drawer-open .drawer-overlay { display: block; }
+
+  /* ===== BOTTOM NAV (mobile) ===== */
+  .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: none;
+    border: none;
+    color: rgba(250,247,242,0.4);
+    font-family: 'Sarabun', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.15s;
+    padding: 6px 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .bottom-nav-item.active { color: var(--gold); }
+  .bottom-nav-item:active { opacity: 0.65; }
+
+  /* ===== BOOKING FORM STEPS ===== */
+  .form-step-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .form-step-num {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--gold); color: var(--deep);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; flex-shrink: 0;
+  }
+  .form-step-label { font-weight: 600; font-size: 15px; }
+  .form-divider { border: none; border-top: 1px solid rgba(139,125,107,0.1); }
+
+  /* ── Custom Service Picker ── */
+  .svc-picker { position: relative; }
+  .svc-trigger {
+    width: 100%; padding: 10px 36px 10px 14px;
+    border: 1.5px solid rgba(139,125,107,0.2); border-radius: 10px;
+    background: var(--smoke); font-family: 'Sarabun', sans-serif;
+    font-size: 14px; color: var(--deep); cursor: pointer;
+    text-align: left; transition: border-color 0.2s, box-shadow 0.2s;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .svc-trigger:focus, .svc-trigger.open {
+    border-color: var(--gold); box-shadow: 0 0 0 3px rgba(200,169,110,0.12); background: white; outline: none;
+  }
+  .svc-trigger-text { flex: 1; min-width: 0; }
+  .svc-trigger-placeholder { color: rgba(139,125,107,0.6); }
+  .svc-trigger-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .svc-trigger-meta { font-size: 11px; color: var(--stone); }
+  .svc-trigger-arrow { font-size: 10px; color: var(--stone); flex-shrink: 0; transition: transform 0.2s; }
+  .svc-trigger.open .svc-trigger-arrow { transform: rotate(180deg); }
+
+  .svc-dropdown {
+    display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+    background: white; border: 1.5px solid rgba(200,169,110,0.25); border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(44,36,22,0.15); z-index: 200;
+    max-height: 320px; overflow-y: auto;
+    padding: 6px;
+  }
+  .svc-dropdown.open { display: block; }
+
+  .svc-option {
+    padding: 11px 14px; border-radius: 10px; cursor: pointer;
+    transition: background 0.15s; display: grid;
+    grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center;
+  }
+  .svc-option:hover { background: rgba(200,169,110,0.08); }
+  .svc-option.selected { background: rgba(200,169,110,0.14); }
+  .svc-option-name { font-weight: 700; font-size: 14px; color: var(--deep); grid-column: 1; }
+  .svc-option-sub  { font-size: 12px; color: var(--stone); grid-column: 1; margin-top: 1px; }
+  .svc-option-price {
+    grid-column: 2; grid-row: 1 / 3; text-align: right;
+    font-weight: 700; font-size: 13px; color: var(--sage); white-space: nowrap;
+    align-self: center;
+  }
+  .svc-option-time {
+    display: inline-block; margin-top: 4px;
+    background: rgba(200,169,110,0.12); color: var(--stone);
+    font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+  }
+
+  /* ===== TIME SLOT LEGEND ===== */
+  .slot-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; font-size: 11px; color: var(--stone); }
+  .slot-legend-item { display: flex; align-items: center; gap: 5px; }
+  .slot-swatch { width: 14px; height: 14px; border-radius: 4px; }
+  .slot-swatch-free { background: white; border: 1.5px solid rgba(139,125,107,0.3); }
+  .slot-swatch-busy { background: #f3f4f6; border: 1.5px solid #e5e7eb; }
+
+  /* ===== END TIME DISPLAY ===== */
+  .end-time-display { display: none; margin-top: 12px; }
+  .end-time-val { font-weight: 600; color: var(--terracotta); }
+
+  /* ===== GAS URL STATUS ===== */
+  .gas-status-ok     { color: #166534; font-weight: 600; }
+  .gas-status-warn   { color: #92400e; font-weight: 600; }
+  .gas-status-err    { color: #dc2626; font-weight: 600; }
+  .gas-status-note   { font-size: 11px; color: var(--stone); }
+
+  /* ===== REPORT SECTION LABEL ===== */
+  .kpi-label {
+    font-size: 11px; color: var(--stone); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .kpi-note { font-size: 11px; color: var(--stone); margin-top: 4px; }
+  .kpi-unit { font-size: 12px; color: var(--stone); margin-top: 4px; }
+
+  /* ===== SETTINGS ROWS ===== */
+  .therapist-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; background: var(--smoke); border-radius: 8px;
+  }
+  .therapist-row span { font-size: 14px; }
+  .service-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; background: var(--smoke); border-radius: 8px; flex-wrap: wrap;
+  }
+  .service-row-name  { font-size: 14px; flex: 1; min-width: 120px; }
+  .service-row-price { font-size: 13px; font-weight: 700; color: var(--sage); white-space: nowrap; }
+  .service-wage-wrap { display: flex; align-items: center; gap: 4px; }
+  .service-wage-input {
+    width: 52px; padding: 4px 6px; text-align: center;
+    border: 1.5px solid rgba(139,125,107,0.25); border-radius: 6px;
+    font-size: 12px; font-family: 'Sarabun', sans-serif; background: white;
+  }
+  .service-wage-label { font-size: 11px; color: var(--stone); }
+  .service-wage-calc  { font-size: 11px; color: var(--terracotta); white-space: nowrap; }
+  .btn-reorder {
+    background: white; border: 1.5px solid rgba(139,125,107,0.25); border-radius: 6px;
+    width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; cursor: pointer; color: var(--stone); transition: all 0.15s; padding: 0;
+  }
+  .btn-reorder:hover:not(:disabled) { background: var(--deep); color: var(--gold); border-color: var(--deep); }
+  .btn-reorder:disabled { opacity: 0.25; cursor: default; }
+
+  /* ===== SYNC BANNER ===== */
+  .sync-banner {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+    background: var(--deep); color: var(--gold);
+    text-align: center; padding: 10px;
+    font-size: 13px; font-family: 'Sarabun', sans-serif;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+
+  /* ===== PRICE DISPLAY ===== */
+  .price-note { font-size: 11px; opacity: 0.6; }
+  .price-value { color: var(--gold); }
+
+</style>
+</head>
+<body>
+
+
+
+<!-- DRAWER OVERLAY (mobile) -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeMobileMenu()"></div>
+
+<!-- MAIN APP -->
+<div id="appWrapper" style="display:flex; flex-direction:column; min-height:100vh;">
+
+  <!-- Mobile Header (top bar) -->
+  <div class="mobile-header" id="mobileHeader" style="display:none;">
+    <span style="font-size:22px;">🌿</span>
+    <span class="font-display text-white text-lg" id="mobileTitle">Thai Spa</span>
+    <div style="width:22px;"></div>
+  </div>
+
+  <!-- Bottom Nav Bar (mobile only) -->
+  <nav id="bottomNav" style="display:none; position:fixed; bottom:0; left:0; right:0; z-index:50; background:var(--deep); border-top:1px solid rgba(200,169,110,0.2); height:60px;">
+    <div style="display:flex; height:100%;">
+      <button class="bottom-nav-item active" id="bnav-booking" onclick="showPage('booking')" style="flex:1;">
+        <span style="font-size:20px;">📅</span>
+        <span>จองคิว</span>
+      </button>
+      <button class="bottom-nav-item" id="bnav-list" onclick="showPage('list')" style="flex:1;">
+        <span style="font-size:20px;">📋</span>
+        <span>รายการ</span>
+      </button>
+      <button class="bottom-nav-item" id="bnav-report" onclick="showPage('report')" style="flex:1;">
+        <span style="font-size:20px;">📊</span>
+        <span>รายงาน</span>
+      </button>
+      <button class="bottom-nav-item" id="bnav-settings" onclick="showPage('settings')" style="flex:1;">
+        <span style="font-size:20px;">⚙️</span>
+        <span>ตั้งค่า</span>
+      </button>
+    </div>
+  </nav>
+
+  <div style="display:flex; flex:1;">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo p-6">
+        <div class="flex items-center gap-3">
+          <span style="font-size:28px;">🌿</span>
+          <div>
+            <div class="font-display text-white text-lg leading-tight" id="shopNameDisplay">Thai Spa</div>
+            <div style="color:var(--gold); font-size:11px;">ระบบจัดการร้าน</div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="flex-1 py-4">
+        <div class="nav-section-label" style="padding: 8px 24px 4px; font-size:10px; color:rgba(250,247,242,0.3); text-transform:uppercase; letter-spacing:1px;">เมนูหลัก</div>
+        <div class="nav-item active" onclick="showPage('booking')" id="nav-booking" title="จองคิว">
+          <span class="nav-icon">📅</span><span class="nav-sidebar-text"> จองคิว</span><span class="nav-label">จองคิว</span>
+        </div>
+        <div class="nav-item" onclick="showPage('list')" id="nav-list" title="รายการจอง">
+          <span class="nav-icon">📋</span><span class="nav-sidebar-text"> รายการจอง <span style="margin-left:auto;font-size:11px;opacity:0.5;">🔒</span></span><span class="nav-label">รายการ</span>
+        </div>
+        <div class="nav-item" onclick="showPage('report')" id="nav-report" title="รายงานรายได้">
+          <span class="nav-icon">📊</span><span class="nav-sidebar-text"> รายงานรายได้ <span style="margin-left:auto;font-size:11px;opacity:0.5;">🔒</span></span><span class="nav-label">รายงาน</span>
+        </div>
+        <div class="nav-section-label" style="padding: 16px 24px 4px; font-size:10px; color:rgba(250,247,242,0.3); text-transform:uppercase; letter-spacing:1px;">ระบบ</div>
+        <div class="nav-item" onclick="showPage('settings')" id="nav-settings" title="ตั้งค่า">
+          <span class="nav-icon">⚙️</span><span class="nav-sidebar-text"> ตั้งค่า <span style="margin-left:auto;font-size:11px;opacity:0.5;">🔒</span></span><span class="nav-label">ตั้งค่า</span>
+        </div>
+      </nav>
+
+      <div style="padding: 16px 24px; border-top: 1px solid rgba(200,169,110,0.15);" id="logoutArea" style="display:none;">
+        <button onclick="doLogout()" class="btn-outline w-full" style="font-size:12px; color:rgba(250,247,242,0.5); border-color:rgba(200,169,110,0.2);">🚪 ออกจากระบบ</button>
+      </div>
+
+
+    </aside>
+
+    <!-- PAGES WRAPPER -->
+    <main class="main flex-1">
+      <div style="padding: 32px 32px 32px;" class="main-content max-w-6xl mx-auto">
+
+        <!-- ===== PAGE: BOOKING ===== -->
+        <div class="page active" id="page-booking">
+          <div class="section-header">
+            <div class="section-icon">📅</div>
+            <div>
+              <h2 class="font-display text-2xl">จองคิวนวด</h2>
+              <p class="text-stone text-sm">กรอกข้อมูลเพื่อทำการจองคิว</p>
+            </div>
+          </div>
+
+          <div class="card p-8">
+            <div class="grid grid-cols-1 gap-6" id="bookingForm">
+
+              <!-- Row 1: Customer info -->
+              <div>
+                <div class="form-step-header">
+                  <div class="form-step-num">1</div>
+                  <span class="form-step-label">ข้อมูลลูกค้า</span>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="form-label">ชื่อลูกค้า *</label>
+                    <input type="text" id="custName" class="form-input" placeholder="ชื่อ-นามสกุล">
+                  </div>
+                  <div>
+                    <label class="form-label">เบอร์โทรศัพท์</label>
+                    <input type="tel" id="custPhone" class="form-input" placeholder="08x-xxx-xxxx">
+                  </div>
+                </div>
+              </div>
+
+              <hr class="form-divider">
+
+              <!-- Row 2: Date & Service -->
+              <div>
+                <div class="form-step-header">
+                  <div class="form-step-num">2</div>
+                  <span class="form-step-label">เลือกวันที่และบริการ</span>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="form-label">วันที่ *</label>
+                    <input type="date" id="bookDate" class="form-input">
+                  </div>
+                  <div>
+                    <label class="form-label">บริการ *</label>
+                    <div class="svc-picker" id="svcPicker">
+                      <button type="button" class="svc-trigger" id="svcTrigger" onclick="toggleSvcDropdown()">
+                        <span class="svc-trigger-text">
+                          <span id="svcTriggerInner" class="svc-trigger-placeholder">-- เลือกบริการ --</span>
+                        </span>
+                        <span class="svc-trigger-arrow">▼</span>
+                      </button>
+                      <div class="svc-dropdown" id="svcDropdown"></div>
+                    </div>
+                    <!-- hidden input ให้โค้ดเดิมอ่านค่าได้ -->
+                    <select id="service" style="display:none;" onchange="updateServicePrice()">
+                      <option value="">-- เลือกบริการ --</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <hr class="form-divider">
+
+              <!-- Row 3: Duration, Therapist, Bed -->
+              <div>
+                <div class="form-step-header">
+                  <div class="form-step-num">3</div>
+                  <span class="form-step-label">เลือกระยะเวลา / พนักงาน / เตียง</span>
+                </div>
+                <div class="booking-row-3col">
+                  <div>
+                    <label class="form-label">ระยะเวลา (นาที) *</label>
+                    <select id="duration" class="form-input" onchange="updateEndTime()">
+                      <option value="">-- เลือก --</option>
+                      <option value="60">60 นาที</option>
+                      <option value="90">90 นาที</option>
+                      <option value="120">120 นาที</option>
+                      <option value="150">150 นาที</option>
+                      <option value="180">180 นาที</option>
+                      <option value="210">210 นาที</option>
+                      <option value="240">240 นาที</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="form-label">พนักงาน *</label>
+                    <select id="therapist" class="form-input">
+                      <option value="">-- เลือกพนักงาน --</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="form-label">เตียง *</label>
+                    <select id="bed" class="form-input">
+                      <option value="">-- เลือกเตียง --</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <hr class="form-divider">
+
+              <!-- Row 4: Time -->
+              <div>
+                <div class="form-step-header">
+                  <div class="form-step-num">4</div>
+                  <span class="form-step-label">เลือกเวลาเริ่มต้น</span>
+                </div>
+                <div id="timeSlotGrid" class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));">
+                  <!-- Generated by JS -->
+                </div>
+                <input type="hidden" id="startTime">
+                <!-- Legend -->
+                <div class="slot-legend">
+                  <div class="slot-legend-item">
+                    <div class="slot-swatch slot-swatch-free"></div>
+                    <span>ว่าง</span>
+                  </div>
+                  <div class="slot-legend-item">
+                    <div class="slot-swatch slot-swatch-busy"></div>
+                    <span>ไม่ว่าง</span>
+                  </div>
+                </div>
+                <div id="endTimeDisplay" class="end-time-display">
+                  <span class="text-stone text-sm">เวลาจบ: </span>
+                  <span id="endTimeVal" class="end-time-val"></span>
+                </div>
+              </div>
+
+              <hr style="border:none;border-top:1px solid rgba(139,125,107,0.1);">
+
+              <!-- Price + Submit -->
+              <div class="booking-price-row">
+                <div>
+                  <div class="text-stone text-sm">ราคารวม <span class="price-note">(ราคา/ชม. × ระยะเวลา)</span></div>
+                  <div id="priceDisplay" class="font-display text-3xl price-value">—</div>
+                </div>
+                <button onclick="submitBooking()" class="btn-gold" style="padding:14px 40px;font-size:15px;">
+                  ✓ บันทึกการจอง
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== PAGE: LIST ===== -->
+        <div class="page" id="page-list">
+          <div class="section-header list-section-header">
+            <div class="section-icon">📋</div>
+            <div style="flex:1;">
+              <h2 class="font-display text-2xl">รายการจองคิว</h2>
+              <p class="text-stone text-sm">จัดการและติดตามการจองทั้งหมด</p>
+            </div>
+            <button onclick="loadFromGAS()" class="btn-outline" style="padding:10px 16px;font-size:13px;border-radius:10px;border-color:var(--gold);color:var(--deep);">
+              🔄 Sync Sheet
+            </button>
+            <button onclick="confirmResetBookings()" class="btn-danger" style="padding:10px 20px;font-size:13px;border-radius:10px;">
+              🗑️ รีเซ็ตรายการจอง
+            </button>
+          </div>
+
+          <!-- Filters -->
+          <div class="card p-4 mb-6">
+            <div class="grid filter-grid gap-4" style="grid-template-columns:1fr 1fr auto;">
+              <div>
+                <label class="form-label">กรองตามวันที่</label>
+                <input type="date" id="filterDate" class="form-input" onchange="renderList()">
+              </div>
+              <div>
+                <label class="form-label">กรองตามสถานะ</label>
+                <select id="filterStatus" class="form-input" onchange="renderList()">
+                  <option value="">ทั้งหมด</option>
+                  <option value="active">Active</option>
+                  <option value="done">Done</option>
+                  <option value="cancel">Cancel</option>
+                </select>
+              </div>
+              <div class="filter-grid-clear" style="display:flex;align-items:flex-end;">
+                <button onclick="clearFilters()" class="btn-outline w-full">ล้างตัวกรอง</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Desktop Table (hidden on mobile <640px) -->
+          <div class="card overflow-hidden list-table-wrapper">
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;min-width:640px;">
+                <thead>
+                  <tr style="background:var(--smoke);">
+                    <th style="padding:14px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:0.5px;">ลูกค้า</th>
+                    <th style="padding:14px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:0.5px;">วันที่</th>
+                    <th style="padding:14px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:0.5px;">บริการ</th>
+                    <th style="padding:14px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:0.5px;">เวลา</th>
+                    <th style="padding:14px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:0.5px;">พนักงาน</th>
+                    <th style="padding:14px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:0.5px;">เตียง</th>
+                    <th style="padding:14px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:0.5px;">ราคา</th>
+                    <th style="padding:14px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:0.5px;">สถานะ</th>
+                    <th style="padding:14px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:0.5px;">จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody id="bookingTableBody">
+                  <tr><td colspan="9" style="padding:48px;text-align:center;color:var(--stone);">ไม่มีข้อมูล</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Mobile Cards (shown only on mobile <640px) -->
+          <div class="list-cards-wrapper" style="display:none;" id="bookingCardsBody">
+            <div style="padding:48px;text-align:center;color:var(--stone);">ไม่มีข้อมูลการจอง</div>
+          </div>
+        </div>
+
+        <!-- ===== PAGE: REPORT ===== -->
+        <div class="page" id="page-report">
+          <div class="section-header" style="flex-wrap:wrap;gap:16px;">
+            <div style="display:flex;align-items:center;gap:12px;flex:1;">
+              <div class="section-icon">📊</div>
+              <div>
+                <h2 class="font-display text-2xl">รายงานรายได้</h2>
+                <p class="text-stone text-sm" id="reportSubtitle">ภาพรวมรายได้และสถิติของร้าน</p>
+              </div>
+            </div>
+            <!-- Date Filter -->
+            <div class="report-filter-pickers">
+              <input type="month" id="reportMonthPicker" class="form-input" style="font-size:13px;padding:7px 12px;" onchange="onReportMonthChange()">
+              <input type="number" id="reportYearPicker" class="form-input" style="font-size:13px;padding:7px 10px;" placeholder="ปี" min="2020" max="2099" onchange="onReportYearChange()">
+              <button onclick="setReportPreset('today')" class="btn-outline report-preset-btn">วันนี้</button>
+            </div>
+          </div>
+
+          <!-- KPI Grid -->
+          <div class="kpi-grid">
+            <div class="kpi-card gold">
+              <div class="kpi-label" id="kpi-label-today">รายได้วันนี้</div>
+              <div class="font-display text-3xl mt-2" id="kpi-today-rev">฿0</div>
+              <div class="kpi-note">* รายได้สุทธิหลังหักค่าแรงพนักงาน</div>
+            </div>
+            <div class="kpi-card sage">
+              <div class="kpi-label" id="kpi-label-month">รายได้เดือนนี้</div>
+              <div class="font-display text-3xl mt-2" id="kpi-month-rev">฿0</div>
+              <div class="kpi-note">* รายได้สุทธิหลังหักค่าแรงพนักงาน</div>
+            </div>
+            <div class="kpi-card terra">
+              <div class="kpi-label" id="kpi-label-year">รายได้ปีนี้</div>
+              <div class="font-display text-3xl mt-2" id="kpi-year-rev">฿0</div>
+              <div class="kpi-note">* รายได้สุทธิหลังหักค่าแรงพนักงาน</div>
+            </div>
+            <div class="kpi-card gold">
+              <div class="kpi-label" id="kpi-label-today-cus">ลูกค้าวันนี้</div>
+              <div class="font-display text-3xl mt-2" id="kpi-today-cus">0</div>
+              <div class="kpi-unit">คน</div>
+            </div>
+            <div class="kpi-card sage">
+              <div class="kpi-label" id="kpi-label-month-cus">ลูกค้าเดือนนี้</div>
+              <div class="font-display text-3xl mt-2" id="kpi-month-cus">0</div>
+              <div class="kpi-unit">คน</div>
+            </div>
+            <div class="kpi-card terra">
+              <div class="kpi-label" id="kpi-label-year-cus">ลูกค้าปีนี้</div>
+              <div class="font-display text-3xl mt-2" id="kpi-year-cus">0</div>
+              <div class="kpi-unit">คน</div>
+            </div>
+          </div>
+
+          <div class="report-charts-grid">
+            <!-- Bar Chart -->
+            <div class="card p-6">
+              <h3 class="font-display text-lg mb-4" id="chartTitle">รายได้รายวัน (เดือนนี้)</h3>
+              <canvas id="revenueChart" height="220"></canvas>
+            </div>
+            <!-- Service Summary -->
+            <div class="card p-6">
+              <h3 class="font-display text-lg mb-4" id="serviceReportTitle">สรุปรายได้แยกตามบริการ</h3>
+              <div id="serviceReport"></div>
+            </div>
+          </div>
+
+          <!-- Top Customers -->
+          <div class="card p-6 mt-6">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+              <span style="font-size:22px;">👑</span>
+              <h3 class="font-display text-lg">ลูกค้าที่มาบ่อยที่สุด 5 อันดับ</h3>
+              <span style="font-size:12px;color:var(--stone);margin-left:auto;" id="topCusNote">นับจากข้อมูลทั้งหมด</span>
+            </div>
+            <div id="topCustomersGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;">
+              <div style="text-align:center;padding:32px;color:var(--stone);">ไม่มีข้อมูล</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== PAGE: SETTINGS ===== -->
+        <div class="page" id="page-settings">
+          <div class="section-header">
+            <div class="section-icon">⚙️</div>
+            <div>
+              <h2 class="font-display text-2xl">ตั้งค่าระบบ</h2>
+              <p class="text-stone text-sm">จัดการข้อมูลร้านและพนักงาน</p>
+            </div>
+          </div>
+
+          <div class="settings-grid">
+
+            <!-- Shop Info -->
+            <div class="card p-6">
+              <h3 class="font-display text-lg mb-4">ข้อมูลร้าน</h3>
+              <div class="space-y-4">
+                <div>
+                  <label class="form-label">ชื่อร้าน</label>
+                  <input type="text" id="settingShopName" class="form-input" placeholder="ชื่อร้านนวด">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="form-label">เปิดร้าน</label>
+                    <input type="time" id="settingOpen" class="form-input">
+                    <div style="font-size:11px;color:var(--stone);margin-top:4px;">เช่น 09:00</div>
+                  </div>
+                  <div>
+                    <label class="form-label">ปิดร้าน</label>
+                    <input type="time" id="settingClose" class="form-input">
+                    <div style="font-size:11px;color:var(--stone);margin-top:4px;">เช่น 21:00</div>
+                  </div>
+                </div>
+                <div>
+                  <label class="form-label">จำนวนเตียง</label>
+                  <input type="number" id="settingBeds" class="form-input" min="1" max="20" value="3">
+                </div>
+              </div>
+            </div>
+
+            <!-- Therapists -->
+            <div class="card p-6">
+              <h3 class="font-display text-lg mb-4">จัดการพนักงาน</h3>
+              <div class="flex gap-2 mb-4">
+                <input type="text" id="newTherapist" class="form-input" placeholder="ชื่อพนักงานใหม่">
+                <button onclick="addTherapist()" class="btn-primary" style="white-space:nowrap;">+ เพิ่ม</button>
+              </div>
+              <div id="therapistList" class="space-y-2"></div>
+            </div>
+
+            <!-- Services -->
+            <div class="card p-6">
+              <h3 class="font-display text-lg mb-4">จัดการบริการ</h3>
+              <div class="grid service-add-grid gap-2 mb-1" style="grid-template-columns:1fr auto auto auto auto;">
+                <input type="text" id="newServiceName" class="form-input" placeholder="ชื่อบริการ">
+                <input type="number" id="newServicePrice" class="form-input" placeholder="ราคา (฿)" min="0" style="width:100px;">
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <input type="number" id="newServiceWage" class="form-input" placeholder="฿" min="0" style="width:64px;text-align:center;">
+                  <span style="font-size:12px;color:var(--stone);white-space:nowrap;">฿ค่าแรง</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <input type="number" id="newServiceMinDuration" class="form-input" placeholder="60" min="30" step="30" style="width:64px;text-align:center;">
+                  <span style="font-size:12px;color:var(--stone);white-space:nowrap;">นาทีขั้นต่ำ</span>
+                </div>
+                <button onclick="addService()" class="btn-primary" style="white-space:nowrap;">+ เพิ่ม</button>
+              </div>
+              <div style="font-size:11px;color:var(--stone);margin-bottom:12px;">ชื่อบริการ · ราคา (฿/ชม.) · ค่าแรงพนักงาน (฿) · เวลาขั้นต่ำ (นาที)</div>
+              <div id="serviceList" class="space-y-2"></div>
+            </div>
+
+          </div>
+
+          <!-- Save Button -->
+          <div class="card p-6 mt-6">
+            <button id="saveShopBtn" onclick="saveShopSettings()" class="btn-primary w-full">💾 บันทึกข้อมูลร้าน</button>
+          </div>
+
+          <!-- Change Password -->
+          <div class="card p-6 mt-6">
+            <h3 class="font-display text-lg mb-4">🔒 เปลี่ยนรหัสผ่าน</h3>
+            <div class="password-grid">
+              <div>
+                <label class="form-label">รหัสผ่านปัจจุบัน</label>
+                <input type="password" id="oldPass" class="form-input" placeholder="••••">
+              </div>
+              <div>
+                <label class="form-label">รหัสผ่านใหม่</label>
+                <input type="password" id="newPass" class="form-input" placeholder="••••">
+              </div>
+              <div>
+                <label class="form-label">ยืนยันรหัสผ่านใหม่</label>
+                <input type="password" id="confirmPass" class="form-input" placeholder="••••">
+              </div>
+            </div>
+            <button onclick="changePassword()" class="btn-primary mt-4">💾 บันทึกรหัสผ่านใหม่</button>
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- TOAST Container -->
+<div id="toastContainer"></div>
+
+<!-- RESET CONFIRM MODAL -->
+<div id="resetModal" class="modal-overlay" style="display:none;">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="text-center mb-6">
+      <div style="font-size:40px;margin-bottom:12px;">⚠️</div>
+      <h2 class="font-display text-xl">ยืนยันการรีเซ็ต</h2>
+      <p class="text-stone text-sm mt-3">การดำเนินการนี้จะ<strong>ลบรายการจองทั้งหมด</strong>ออกจากระบบ และรายงานรายได้จะถูกคำนวณใหม่ตามข้อมูลที่เหลือ</p>
+      <p class="mt-2" style="color:#dc2626;font-size:13px;font-weight:600;">ไม่สามารถกู้คืนได้</p>
+    </div>
+    <div style="display:flex;gap:12px;">
+      <button onclick="closeResetModal()" class="btn-outline w-full">ยกเลิก</button>
+      <button onclick="doResetBookings()" class="btn-danger w-full" style="padding:12px;font-size:14px;border-radius:10px;">🗑️ ยืนยันรีเซ็ต</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN MODAL -->
+<div id="loginModal" class="modal-overlay" style="display:none;">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="text-center mb-6">
+      <div style="font-size:36px;margin-bottom:8px;">🔐</div>
+      <h2 class="font-display text-xl" id="loginModalTitle">เข้าสู่ระบบ</h2>
+      <p class="text-stone text-sm mt-1">กรุณากรอกรหัสผ่านเพื่อเข้าใช้งาน</p>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="form-label">รหัสผ่าน</label>
+        <input id="modalPass" type="password" class="form-input" placeholder="••••••" onkeydown="if(event.key==='Enter') doModalLogin()">
+      </div>
+      <button onclick="doModalLogin()" class="btn-gold w-full">เข้าสู่ระบบ</button>
+      <button onclick="closeLoginModal()" class="btn-outline w-full">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =============================================
+// ⚙️ ตั้งค่า Google Apps Script URL ที่นี่
+// วางURL ของคุณระหว่างเครื่องหมาย '' แล้วบันทึกไฟล์
+// ทุกเครื่องที่เปิดไฟล์นี้จะเชื่อมต่อได้เลยโดยไม่ต้องกรอกใหม่
+// =============================================
+const HARDCODED_GAS_URL = 'https://script.google.com/macros/s/AKfycbwwxxv62R12Svcf_p3QoG7QDYHCshw5WLypFFrqyzGNkKVmt1eQk0H2MYf3TZX5ZVcDAQ/exec';
+
+// =============================================
+// AUTH — private closure (ไม่ expose ใน global scope / state / localStorage)
+// =============================================
+const Auth = (() => {
+  let _ok = false;
+
+  async function sha256(str) {
+    const buf = await crypto.subtle.digest(
+      'SHA-256', new TextEncoder().encode(str)
+    );
+    return Array.from(new Uint8Array(buf))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function setPassword(plain) {
+    return await sha256(plain);  // คืน hash ให้ caller เก็บใน settings.passwordHash
+  }
+
+  async function verify(plain, storedHash) {
+    const h = await sha256(plain);
+    return h === storedHash;
+  }
+
+  return { get ok() { return _ok; }, login() { _ok = true; }, logout() { _ok = false; }, setPassword, verify, sha256 };
+})();
+
+// =============================================
+// APP STATE
+// =============================================
+let state = {
+  pendingPage: null,
+  settings: {
+    shopName: 'Thai Spa',
+    openTime: '09:00',
+    closeTime: '21:00',
+    bedCount: 3,
+    therapists: ['คุณนอม', 'คุณดำ'],
+    services: [
+      { name: 'นวดแผนไทย', price: 300, wageAmount: 150 },
+      { name: 'นวดน้ำมัน',  price: 400, wageAmount: 200 },
+      { name: 'นวดฝ่าเท้า', price: 250, wageAmount: 125 },
+      { name: 'อโรมา',      price: 500, wageAmount: 250 },
+    ],
+    gasUrl: '',
+    passwordHash: '',   // เก็บ SHA-256 hash เท่านั้น ไม่มี plain text password
+  },
+  bookings: [],
+  selectedTime: null,
+  revenueChart: null
+};
+
+// =============================================
+// PERSISTENCE
+// =============================================
+function saveState() {
+  // ไม่บันทึก plain text password ลง localStorage เด็ดขาด
+  const { password, ...safeSettings } = state.settings;
+  localStorage.setItem('thaispa_settings', JSON.stringify(safeSettings));
+  localStorage.setItem('thaispa_bookings', JSON.stringify(state.bookings));
+}
+
+async function loadState() {
+  const s = localStorage.getItem('thaispa_settings');
+  const b = localStorage.getItem('thaispa_bookings');
+  if (s) {
+    const parsed = JSON.parse(s);
+    const timeRe = /^\d{2}:\d{2}$/;
+    if (!timeRe.test(parsed.openTime))  parsed.openTime  = '09:00';
+    if (!timeRe.test(parsed.closeTime)) parsed.closeTime = '21:00';
+
+    // Migration: ถ้าเจอ plain text password เก่า ให้แปลงเป็น hash แล้วลบทิ้ง
+    if (parsed.password && !parsed.passwordHash) {
+      parsed.passwordHash = await Auth.sha256(parsed.password);
+      delete parsed.password;
+      localStorage.setItem('thaispa_settings', JSON.stringify(parsed));
+    }
+
+    state.settings = { ...state.settings, ...parsed };
+    delete state.settings.password;
+    // Migration: services เก่าที่ยังเป็น wagePercent → แปลงเป็น wageAmount
+    // Migration: services ที่ยังไม่มี minDuration → default 60 นาที
+    if (Array.isArray(state.settings.services)) {
+      state.settings.services = state.settings.services.map(s => {
+        // ถ้าเป็น wagePercent เก่า ให้แปลงเป็น wageAmount
+        const wageAmount = s.wageAmount != null
+          ? s.wageAmount
+          : s.wagePercent != null
+            ? Math.round(s.price * s.wagePercent / 100)
+            : Math.round(s.price * 0.5);
+        return {
+          ...s,
+          wageAmount,
+          wagePercent: undefined,   // ลบ field เก่าออก
+          minDuration: s.minDuration ?? 60,
+        };
+      });
+    }
+  }
+  if (b) state.bookings = JSON.parse(b).map(normalizeBooking);
+
+  // ถ้ายังไม่มี hash เลย (ติดตั้งใหม่) ให้ตั้ง default '1234'
+  if (!state.settings.passwordHash) {
+    state.settings.passwordHash = await Auth.sha256('1234');
+    saveState();
+  }
+
+  // HARDCODED_GAS_URL มีความสำคัญสูงสุด — override localStorage เสมอ
+  if (typeof HARDCODED_GAS_URL === 'string' && HARDCODED_GAS_URL.trim() !== '') {
+    state.settings.gasUrl = HARDCODED_GAS_URL.trim();
+  }
+}
+
+// ─── DATA NORMALIZER ───────────────────────────────────────────────────────
+// ทำให้ booking object มีรูปแบบที่ถูกต้องเสมอ ไม่ว่าจะมาจาก GAS หรือ localStorage
+// GAS v3 ส่งมาเป็น plain string แล้ว แต่เผื่อ data เก่าใน Sheet ยังมี format แปลก
+
+function parseTimeStr(val) {
+  // รับประกัน output เป็น "HH:MM" เสมอ
+  if (!val && val !== 0) return '';
+  const s = String(val).trim();
+  // ISO datetime: "1899-12-30T10:00:00.000Z" หรือ "2025-03-01T10:00:00.000Z"
+  const iso = s.match(/T(\d{2}):(\d{2})/);
+  if (iso) return iso[1] + ':' + iso[2];
+  // HH:MM หรือ H:MM
+  const hm = s.match(/^(\d{1,2}):(\d{2})/);
+  if (hm) return String(hm[1]).padStart(2,'0') + ':' + hm[2];
+  // decimal fraction เช่น 0.375 = 09:00
+  const num = parseFloat(s);
+  if (!isNaN(num) && num > 0 && num < 1) {
+    const totalMin = Math.round(num * 24 * 60);
+    return String(Math.floor(totalMin/60)).padStart(2,'0') + ':' + String(totalMin%60).padStart(2,'0');
+  }
+  return s;
+}
+
+function parseDateStr(val) {
+  // รับประกัน output เป็น "YYYY-MM-DD" เสมอ
+  if (!val) return '';
+  const s = String(val).trim();
+  // ISO datetime: "2025-03-01T17:00:00.000Z" → ตัดเอาแค่ date part
+  const iso = s.match(/^(\d{4}-\d{2}-\d{2})T/);
+  if (iso) return iso[1];
+  // YYYY-MM-DD อยู่แล้ว
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  return s;
+}
+
+function normalizeBooking(b) {
+  return {
+    ...b,
+    date:      parseDateStr(b.date),
+    startTime: parseTimeStr(b.startTime),
+    endTime:   parseTimeStr(b.endTime),
+    duration:  parseInt(b.duration) || 0,
+    price:     Number(b.price)      || 0
+  };
+}
+
+// แปลงค่าเวลาที่อาจมาจาก Google Sheet ในรูปแบบต่างๆ → "HH:MM" (ใช้กับ settings)
+function sanitizeTime(val, fallback) {
+  const result = parseTimeStr(val);
+  return result || fallback;
+}
+
+// ─── BOOKING VALIDATOR ──────────────────────────────────────────────────────
+// ตรวจสอบ raw input จาก form — คืน { ok, field, message }
+// ไม่ยุ่งกับ DOM, ไม่ยุ่งกับ state — pure function ทดสอบได้อิสระ
+function validateBookingInput({ custName, date, service, duration, therapist, bed, startTime }) {
+  if (!custName?.trim())
+    return { ok: false, field: 'custName',  message: 'กรุณากรอกชื่อลูกค้า' };
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date))
+    return { ok: false, field: 'date',      message: 'กรุณาเลือกวันที่' };
+  if (!service)
+    return { ok: false, field: 'service',   message: 'กรุณาเลือกบริการ' };
+  if (!duration || parseInt(duration) <= 0)
+    return { ok: false, field: 'duration',  message: 'กรุณาเลือกระยะเวลา' };
+  if (!therapist)
+    return { ok: false, field: 'therapist', message: 'กรุณาเลือกพนักงาน' };
+  if (!bed)
+    return { ok: false, field: 'bed',       message: 'กรุณาเลือกเตียง' };
+  if (!startTime || !/^\d{2}:\d{2}$/.test(startTime))
+    return { ok: false, field: 'startTime', message: 'กรุณาเลือกเวลาเริ่มต้น' };
+  return { ok: true };
+}
+
+// ─── BOOKING BUILDER ────────────────────────────────────────────────────────
+// รับ raw input + price แล้วคืน booking object ที่ normalize แล้ว พร้อม push เข้า state
+// การคำนวณ endTime อยู่ที่นี่ที่เดียว ไม่กระจายใน submitBooking
+function buildBooking({ custName, custPhone, date, service, duration, therapist, bed, startTime, price }) {
+  const dur     = parseInt(duration);
+  const endMin  = toMin(startTime) + dur;
+  const endTime = `${String(Math.floor(endMin / 60)).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
+
+  return normalizeBooking({
+    id:        Date.now().toString(),
+    custName:  custName.trim(),
+    custPhone: (custPhone || '').trim(),
+    date,
+    service,
+    duration:  dur,
+    therapist,
+    bed,
+    startTime,
+    endTime,
+    price:     Number(price) || 0,
+    status:    'active',
+    createdAt: new Date().toISOString(),
+  });
+}
+
+// โหลดข้อมูลทั้งหมดจาก Google Sheet (ทำให้ทุกเครื่องเห็นข้อมูลเดียวกัน)
+async function loadFromGAS() {
+  if (!state.settings.gasUrl) return;
+  showSyncBanner('กำลังโหลดข้อมูล...');
+  try {
+    const url = state.settings.gasUrl + '?action=getAll&t=' + Date.now();
+    const res = await fetch(url);
+    const data = await res.json();
+
+    // โหลด bookings — sanitize startTime/endTime ที่ GAS อาจส่งมาเป็น ISO string
+    if (data.bookings && Array.isArray(data.bookings)) {
+      state.bookings = data.bookings.map(normalizeBooking);
+    }
+
+    // โหลด settings — sanitize ค่าก่อน merge เพื่อป้องกัน Sheet ส่งค่าผิดรูปแบบ
+    if (data.settings) {
+      const gs = data.settings;
+      const gasUrl      = state.settings.gasUrl;
+      // ใช้ passwordHash จาก local เสมอ — ไม่รับ password plain text จาก GAS
+      const passwordHash = state.settings.passwordHash;
+      // Sanitize เวลาเปิด/ปิดจาก Sheet (อาจเป็น null, decimal, หรือรูปแบบแปลก)
+      gs.openTime  = sanitizeTime(gs.openTime,  state.settings.openTime  || '09:00');
+      gs.closeTime = sanitizeTime(gs.closeTime, state.settings.closeTime || '21:00');
+      // bedCount ต้องเป็น number
+      if (gs.bedCount) gs.bedCount = parseInt(gs.bedCount) || state.settings.bedCount || 3;
+      // shopName ต้องไม่ว่าง
+      if (!gs.shopName || !String(gs.shopName).trim()) gs.shopName = state.settings.shopName || 'Thai Spa';
+      // therapists/services ต้องเป็น array
+      if (!Array.isArray(gs.therapists)) gs.therapists = state.settings.therapists;
+      if (!Array.isArray(gs.services))   gs.services   = state.settings.services;
+      delete gs.password;        // ลบ plain text password จาก GAS ออกก่อน merge
+      state.settings = { ...state.settings, ...gs, gasUrl, passwordHash };
+    }
+
+    saveState();
+    updateShopName();
+    populateBookingSelects();
+    renderTimeSlots();
+    renderSettings();
+    hideSyncBanner();
+    showToast('✓ โหลดข้อมูลล่าสุดแล้ว', 'success');
+  } catch(e) {
+    hideSyncBanner();
+    showToast('⚠ ไม่สามารถเชื่อมต่อ Google Sheet ได้ ใช้ข้อมูล local แทน', 'error');
+  }
+}
+
+// บันทึก Settings ลง Google Sheet
+async function saveSettingsToGAS() {
+  if (!state.settings.gasUrl) return;
+  const { gasUrl, ...settingsToSave } = state.settings;
+  try {
+    await fetch(state.settings.gasUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'saveSettings', settings: settingsToSave })
+    });
+  } catch(_) {}
+}
+
+function showSyncBanner(msg) {
+  let b = document.getElementById('syncBanner');
+  if (!b) {
+    b = document.createElement('div');
+    b.id = 'syncBanner';
+    b.className = 'sync-banner';
+    document.body.prepend(b);
+  }
+  b.innerHTML = `<span class="spinner"></span> ${msg}`;
+  b.style.display = 'flex';
+}
+
+function hideSyncBanner() {
+  const b = document.getElementById('syncBanner');
+  if (b) b.style.display = 'none';
+}
+
+// =============================================
+// NAVIGATION
+// =============================================
+const PROTECTED_PAGES = ['list', 'report', 'settings'];
+
+function showPage(name) {
+  if (PROTECTED_PAGES.includes(name) && !Auth.ok) {
+    state.pendingPage = name;
+    openLoginModal(name);
+    return;
+  }
+  _navigateTo(name);
+}
+
+function _navigateTo(name) {
+  // Double-gate: ตรวจสิทธิ์ซ้ำอีกครั้ง กันกรณีเรียก _navigateTo() ตรงจาก console
+  if (PROTECTED_PAGES.includes(name) && !Auth.ok) {
+    state.pendingPage = name;
+    openLoginModal(name);
+    return;
+  }
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  document.querySelectorAll(".bottom-nav-item").forEach(n => n.classList.remove("active"));
+  document.getElementById("page-" + name).classList.add("active");
+  const sideNav = document.getElementById("nav-" + name);
+  if (sideNav) sideNav.classList.add("active");
+  const bNav = document.getElementById("bnav-" + name);
+  if (bNav) bNav.classList.add("active");
+  if (name === "report") renderReport();
+  if (name === "list") renderList();
+  if (name === "settings") renderSettings();
+  if (name === "booking") renderTimeSlots();
+  closeMobileMenu();
+  const titles = {booking:"จองคิว",list:"รายการจอง",report:"รายงาน",settings:"ตั้งค่า"};
+  document.getElementById("mobileTitle").textContent = titles[name] || "Thai Spa";
+}
+
+function openLoginModal(page) {
+  const titles = { list: 'รายการจอง', report: 'รายงานรายได้', settings: 'ตั้งค่า' };
+  document.getElementById('loginModalTitle').textContent = 'เข้าสู่ระบบ — ' + (titles[page] || '');
+  document.getElementById('modalPass').value = '';
+  document.getElementById('loginModal').style.display = 'flex';
+  setTimeout(() => document.getElementById('modalPass').focus(), 100);
+}
+
+function closeLoginModal() {
+  document.getElementById('loginModal').style.display = 'none';
+  state.pendingPage = null;
+}
+
+async function doModalLogin() {
+  const pass = document.getElementById('modalPass').value;
+  const ok = await Auth.verify(pass, state.settings.passwordHash);
+  if (ok) {
+    Auth.login();
+    document.getElementById('loginModal').style.display = 'none';
+    document.getElementById('logoutArea').style.display = 'block';
+    if (state.pendingPage) {
+      const page = state.pendingPage;
+      state.pendingPage = null;
+      _navigateTo(page);
+    }
+  } else {
+    document.getElementById('modalPass').value = '';
+    document.getElementById('modalPass').focus();
+    showToast('รหัสผ่านไม่ถูกต้อง', 'error');
+  }
+}
+
+function doLogout() {
+  Auth.logout();
+  document.getElementById('logoutArea').style.display = 'none';
+  showToast('ออกจากระบบแล้ว', 'success');
+  // Go back to booking page if currently on protected page
+  const activePage = document.querySelector('.page.active');
+  if (activePage) {
+    const name = activePage.id.replace('page-', '');
+    if (PROTECTED_PAGES.includes(name)) _navigateTo('booking');
+  }
+}
+
+function toggleMobileMenu() {
+  document.body.classList.toggle('drawer-open');
+}
+
+function closeMobileMenu() {
+  document.body.classList.remove('drawer-open');
+}
+
+// =============================================
+// INIT
+// =============================================
+function initApp() {
+  updateShopName();
+  populateBookingSelects();
+  renderTimeSlots();
+  setDefaultDate();
+  renderSettings();
+  initReportPickers();
+
+  // Responsive layout init
+  function applyLayout() {
+    const w = window.innerWidth;
+    const mobileHeader = document.getElementById("mobileHeader");
+    const bottomNav    = document.getElementById("bottomNav");
+    if (w <= 768) {
+      mobileHeader.style.display = "flex";
+      bottomNav.style.display    = "block";
+    } else {
+      mobileHeader.style.display = "none";
+      bottomNav.style.display    = "none";
+    }
+  }
+  applyLayout();
+  window.addEventListener("resize", applyLayout);
+
+  // โหลดข้อมูลจาก Google Sheet ทันทีที่เปิดแอป
+  if (state.settings.gasUrl) {
+    loadFromGAS();
+  }
+}
+
+function setDefaultDate() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('bookDate').value = today;
+}
+
+function updateShopName() {
+  document.getElementById('shopNameDisplay').textContent = state.settings.shopName;
+  document.title = state.settings.shopName + ' — ระบบจองคิว';
+}
+
+// =============================================
+// BOOKING FORM
+// =============================================
+function populateBookingSelects() {
+  // ── Custom Service Picker ──
+  const hiddenSel = document.getElementById('service');
+  const dropdown  = document.getElementById('svcDropdown');
+  hiddenSel.innerHTML = '<option value="">-- เลือกบริการ --</option>';
+  dropdown.innerHTML  = '';
+
+  state.settings.services.forEach(s => {
+    const minDur   = s.minDuration ?? 60;
+    const minPrice = Math.round(s.price * minDur / 60);
+    const hrs      = Math.floor(minDur / 60);
+    const mins     = minDur % 60;
+    const timeLabel = hrs > 0 && mins > 0 ? `${hrs} ชม. ${mins} นาที`
+                    : hrs > 0             ? `${hrs} ชม.`
+                    :                       `${mins} นาที`;
+
+    // hidden select option (ให้โค้ดเดิมทำงานได้)
+    hiddenSel.innerHTML += `<option value="${s.name}" data-price="${s.price}" data-min-duration="${minDur}">${s.name}</option>`;
+
+    // dropdown card
+    const div = document.createElement('div');
+    div.className = 'svc-option';
+    div.dataset.value = s.name;
+    div.innerHTML = `
+      <div class="svc-option-name">${s.name}</div>
+      <div class="svc-option-sub"><span class="svc-option-time">⏱ ${timeLabel}</span></div>
+      <div class="svc-option-price">฿${minPrice.toLocaleString()}</div>`;
+    div.addEventListener('click', () => selectService(s.name));
+    dropdown.appendChild(div);
+  });
+
+  // Therapists
+  const tsel = document.getElementById('therapist');
+  tsel.innerHTML = '<option value="">-- เลือกพนักงาน --</option>';
+  state.settings.therapists.forEach(t => {
+    tsel.innerHTML += `<option value="${t}">${t}</option>`;
+  });
+
+  // Beds
+  const bsel = document.getElementById('bed');
+  bsel.innerHTML = '<option value="">-- เลือกเตียง --</option>';
+  for (let i = 1; i <= state.settings.bedCount; i++) {
+    bsel.innerHTML += `<option value="เตียงที่ ${i}">เตียงที่ ${i}</option>`;
+  }
+}
+
+function toggleSvcDropdown() {
+  const trigger  = document.getElementById('svcTrigger');
+  const dropdown = document.getElementById('svcDropdown');
+  const isOpen   = dropdown.classList.contains('open');
+  trigger.classList.toggle('open', !isOpen);
+  dropdown.classList.toggle('open', !isOpen);
+}
+
+function selectService(name) {
+  const svc      = state.settings.services.find(s => s.name === name);
+  const minDur   = svc ? (svc.minDuration ?? 60) : 60;
+  const minPrice = svc ? Math.round(svc.price * minDur / 60) : 0;
+  const hrs      = Math.floor(minDur / 60);
+  const mins     = minDur % 60;
+  const timeLabel = hrs > 0 && mins > 0 ? `${hrs} ชม. ${mins} นาที`
+                  : hrs > 0             ? `${hrs} ชม.`
+                  :                       `${mins} นาที`;
+
+  // อัปเดต trigger display
+  document.getElementById('svcTriggerInner').innerHTML = `
+    <div class="svc-trigger-name">${name}</div>
+    <div class="svc-trigger-meta">฿${minPrice.toLocaleString()} · ${timeLabel}</div>`;
+  document.getElementById('svcTriggerInner').className = 'svc-trigger-text';
+
+  // highlight selected
+  document.querySelectorAll('.svc-option').forEach(el => {
+    el.classList.toggle('selected', el.dataset.value === name);
+  });
+
+  // sync hidden select
+  const hiddenSel = document.getElementById('service');
+  hiddenSel.value = name;
+
+  // ปิด dropdown
+  document.getElementById('svcTrigger').classList.remove('open');
+  document.getElementById('svcDropdown').classList.remove('open');
+
+  // trigger price/duration update
+  updateServicePrice();
+}
+
+// ปิด dropdown เมื่อคลิกนอก
+document.addEventListener('click', e => {
+  const picker = document.getElementById('svcPicker');
+  if (picker && !picker.contains(e.target)) {
+    document.getElementById('svcTrigger')?.classList.remove('open');
+    document.getElementById('svcDropdown')?.classList.remove('open');
+  }
+});
+
+function calcPrice() {
+  const sel = document.getElementById('service');
+  const opt = sel.options[sel.selectedIndex];
+  const basePrice = opt ? parseInt(opt.getAttribute('data-price') || '0') : 0;
+  const duration = parseInt(document.getElementById('duration').value || '0');
+  if (basePrice && duration) {
+    const total = Math.round(basePrice * duration / 60);
+    document.getElementById('priceDisplay').textContent = '฿' + total.toLocaleString();
+    document.getElementById('priceDisplay').setAttribute('data-total', total);
+  } else if (basePrice) {
+    document.getElementById('priceDisplay').textContent = '฿' + basePrice.toLocaleString() + ' (เลือกเวลา)';
+    document.getElementById('priceDisplay').setAttribute('data-total', basePrice);
+  } else {
+    document.getElementById('priceDisplay').textContent = '—';
+    document.getElementById('priceDisplay').removeAttribute('data-total');
+  }
+}
+
+function updateServicePrice() {
+  const sel     = document.getElementById('service');
+  const svcName = sel.value;
+  const svc     = state.settings.services.find(s => s.name === svcName);
+  const minDur  = svc ? (svc.minDuration ?? 60) : 60;
+  const closeMin = (() => { const [h,m] = (state.settings.closeTime||'21:00').split(':').map(Number); return h*60+m; })();
+  const openMin  = (() => { const [h,m] = (state.settings.openTime ||'09:00').split(':').map(Number); return h*60+m; })();
+  const maxDur   = Math.min(closeMin - openMin, 300);
+
+  const durSel  = document.getElementById('duration');
+  const prevVal = parseInt(durSel.value) || 0;
+
+  // เริ่มจาก minDur แล้ว step ทีละ 30 นาที
+  const options = [];
+  for (let d = minDur; d <= maxDur; d += 30) {
+    options.push(d);
+  }
+
+  durSel.innerHTML = '<option value="">-- เลือก --</option>';
+  options.forEach(d => {
+    const hrs  = Math.floor(d / 60);
+    const mins = d % 60;
+    const label = hrs > 0 && mins > 0 ? `${hrs} ชม. ${mins} นาที`
+                : hrs > 0             ? `${hrs} ชม.`
+                :                       `${mins} นาที`;
+    durSel.innerHTML += `<option value="${d}"${d === prevVal ? ' selected' : ''}>${label}</option>`;
+  });
+
+  if (prevVal < minDur) durSel.value = '';
+
+  calcPrice();
+}
+
+function generateTimeSlots() {
+  const open = state.settings.openTime || '09:00';
+  const close = state.settings.closeTime || '21:00';
+  const slots = [];
+  let [oh, om] = open.split(':').map(Number);
+  let [ch, cm] = close.split(':').map(Number);
+  let cur = oh * 60 + om;
+  const end = ch * 60 + cm;
+  while (cur <= end) {
+    const hh = String(Math.floor(cur/60)).padStart(2,'0');
+    const mm = String(cur%60).padStart(2,'0');
+    slots.push(`${hh}:${mm}`);
+    cur += 30;
+  }
+  return slots;
+}
+
+function renderTimeSlots() {
+  const container = document.getElementById('timeSlotGrid');
+  const slots     = generateTimeSlots();
+  const date      = document.getElementById('bookDate')?.value;
+  const therapist = document.getElementById('therapist')?.value;
+  const bed       = document.getElementById('bed')?.value;
+  const duration  = parseInt(document.getElementById('duration')?.value || '0');
+
+  const STATUS_CLASS = { free: '', busy: 'unavailable', past: 'past' };
+  const STATUS_TITLE = { free: 'ว่าง', busy: 'ไม่ว่าง', past: 'เวลาผ่านไปแล้ว' };
+
+  container.innerHTML = slots.map(slot => {
+    const isSelected = state.selectedTime === slot;
+    const status     = isSelected ? 'free'
+                     : getSlotStatus(date, slot, duration, therapist, bed, null);
+    const cls        = isSelected ? 'selected' : STATUS_CLASS[status];
+    const clickable  = status === 'free' && !isPastSlot(date, slot);
+
+    return `<div class="time-slot ${cls}"
+      onclick="selectTime('${slot}', ${!clickable})"
+      title="${STATUS_TITLE[status]}">${slot}</div>`;
+  }).join('');
+}
+
+function selectTime(slot, conflict) {
+  if (conflict) return;
+  state.selectedTime = slot;
+  document.getElementById('startTime').value = slot;
+  renderTimeSlots();
+  updateEndTime();
+}
+
+function updateEndTime() {
+  const start = state.selectedTime;
+  const dur = parseInt(document.getElementById('duration').value || '0');
+  const display = document.getElementById('endTimeDisplay');
+  if (start && dur) {
+    const [h,m] = start.split(':').map(Number);
+    const totalMin = h*60 + m + dur;
+    const eh = String(Math.floor(totalMin/60)).padStart(2,'0');
+    const em = String(totalMin%60).padStart(2,'0');
+    document.getElementById('endTimeVal').textContent = `${eh}:${em}`;
+    display.style.display = 'block';
+  } else {
+    display.style.display = 'none';
+  }
+  calcPrice();
+  renderTimeSlots();
+}
+
+document.getElementById('bookDate')?.addEventListener('change', () => { state.selectedTime = null; renderTimeSlots(); });
+document.getElementById('therapist')?.addEventListener('change', () => { state.selectedTime = null; renderTimeSlots(); });
+document.getElementById('bed')?.addEventListener('change', () => { state.selectedTime = null; renderTimeSlots(); });
+
+// แปลง "HH:MM" → จำนวนนาทีนับจากเที่ยงคืน
+function toMin(timeStr) {
+  const [h, m] = timeStr.split(':').map(Number);
+  return h * 60 + m;
+}
+
+// ตรวจว่า slot นี้เป็นเวลาที่ผ่านไปแล้วหรือไม่
+// วันก่อนหน้า → past ทั้งวัน / วันนี้ → เปรียบเทียบกับเวลาปัจจุบัน
+function isPastSlot(date, startTime) {
+  if (!date || !startTime) return false;
+  const now     = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  if (date < todayStr) return true;
+  if (date > todayStr) return false;
+  const nowMin  = now.getHours() * 60 + now.getMinutes();
+  return toMin(startTime) < nowMin;
+}
+
+// คืน 'past' | 'free' | 'busy' — loop bookings แค่ครั้งเดียวต่อ slot
+function getSlotStatus(date, startTime, duration, therapist, bed, excludeId = null) {
+  if (!date || !startTime || !duration) return 'free';
+
+  if (isPastSlot(date, startTime)) return 'past';
+
+  const newStart = toMin(startTime);
+  const newEnd   = newStart + duration;
+
+  for (const b of state.bookings) {
+    if (excludeId && b.id === excludeId) continue;
+    if (b.date !== date)                 continue;
+    if (b.status === 'cancel')           continue;
+
+    const sameResource = (therapist && b.therapist === therapist)
+                      || (bed       && b.bed       === bed);
+    if (!sameResource) continue;
+
+    const bStart = toMin(b.startTime);
+    const bEnd   = bStart + parseInt(b.duration);
+
+    if (newStart < bEnd && newEnd > bStart) return 'busy';
+  }
+
+  return 'free';
+}
+
+// ใช้ getSlotStatus แทน checkConflict เพื่อความเข้ากันได้กับโค้ดส่วนอื่น
+function checkConflict(date, startTime, duration, therapist, bed, excludeId) {
+  return getSlotStatus(date, startTime, duration, therapist, bed, excludeId) !== 'free';
+}
+
+// ─── FORM READER ────────────────────────────────────────────────────────────
+// ดึงค่าดิบจาก DOM ทีเดียว — submitBooking ไม่แตะ DOM เองโดยตรง
+function readBookingForm() {
+  return {
+    custName:  document.getElementById('custName').value,
+    custPhone: document.getElementById('custPhone').value,
+    date:      document.getElementById('bookDate').value,
+    service:   document.getElementById('service').value,
+    duration:  document.getElementById('duration').value,
+    therapist: document.getElementById('therapist').value,
+    bed:       document.getElementById('bed').value,
+    startTime: state.selectedTime,
+    price:     parseInt(document.getElementById('priceDisplay').getAttribute('data-total') || '0'),
+  };
+}
+
+function resetBookingForm() {
+  ['custName','custPhone','service','duration','therapist','bed']
+    .forEach(id => { document.getElementById(id).value = ''; });
+  // reset custom service picker
+  const inner = document.getElementById('svcTriggerInner');
+  if (inner) {
+    inner.className = 'svc-trigger-placeholder';
+    inner.textContent = '-- เลือกบริการ --';
+  }
+  document.querySelectorAll('.svc-option').forEach(el => el.classList.remove('selected'));
+  state.selectedTime = null;
+  document.getElementById('priceDisplay').textContent = '—';
+  document.getElementById('endTimeDisplay').style.display = 'none';
+  setDefaultDate();
+  renderTimeSlots();
+}
+
+// ─── SUBMIT (orchestrator เท่านั้น — ไม่มี logic ปนอยู่) ────────────────────
+async function submitBooking() {
+  const raw = readBookingForm();
+
+  // ① Validate
+  const validation = validateBookingInput(raw);
+  if (!validation.ok) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'ข้อมูลไม่ครบ',
+      text: validation.message,
+      confirmButtonText: 'รับทราบ',
+      confirmButtonColor: '#C8A96E',
+    });
+    return;
+  }
+
+  // ② Sync ข้อมูลล่าสุดจาก GAS ก่อน เพื่อป้องกันจองซ้ำจากหลายเครื่อง
+  if (state.settings.gasUrl) {
+    const btn = document.querySelector('[onclick="submitBooking()"]');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ กำลังตรวจสอบ...'; }
+    try {
+      const res  = await fetch(state.settings.gasUrl + '?action=getAll&t=' + Date.now());
+      const data = await res.json();
+      if (data.bookings && Array.isArray(data.bookings)) {
+        state.bookings = data.bookings.map(normalizeBooking);
+        saveState();
+        renderTimeSlots();
+      }
+    } catch(_) {}
+    if (btn) { btn.disabled = false; btn.textContent = '📅 ยืนยันการจอง'; }
+  }
+
+  // ③ Check conflict (หลัง sync แล้ว)
+  if (checkConflict(raw.date, raw.startTime, parseInt(raw.duration), raw.therapist, raw.bed, null)) {
+    Swal.fire({
+      icon: 'error',
+      title: 'เวลาถูกจองแล้ว',
+      text: 'ช่วงเวลานี้พนักงานหรือเตียงถูกจองแล้ว กรุณาเลือกเวลาใหม่',
+      confirmButtonText: 'เลือกเวลาใหม่',
+      confirmButtonColor: '#2C2416',
+    });
+    state.selectedTime = null;
+    renderTimeSlots();
+    return;
+  }
+
+  // ④ Build booking object (normalize ครบในขั้นตอนเดียว)
+  const booking = buildBooking(raw);
+
+  // ⑤ Persist
+  state.bookings.push(booking);
+  saveState();
+  if (state.settings.gasUrl) saveToGAS(booking);
+
+  // ⑥ Reset form
+  resetBookingForm();
+
+  // ⑦ Show success
+  showBookingSuccess(booking);
+}
+
+// ─── SUCCESS POPUP ───────────────────────────────────────────────────────────
+function showBookingSuccess(b) {
+  const dateLabel = formatDate(b.date);  // ใช้ formatDate ที่ normalize แล้ว
+
+  Swal.fire({
+    html: `
+      <div style="font-family:'Sarabun',sans-serif;">
+        <div style="background:linear-gradient(135deg,#2C2416,#3d3220);margin:-20px -20px 20px;padding:28px 20px 24px;border-radius:12px 12px 0 0;">
+          <div style="font-size:44px;margin-bottom:8px;">✅</div>
+          <div style="color:#C8A96E;font-size:20px;font-weight:700;letter-spacing:0.5px;">จองคิวสำเร็จ!</div>
+        </div>
+        <div style="padding:0 4px;">
+          <div style="font-size:22px;font-weight:700;color:#2C2416;margin-bottom:4px;">${b.custName}</div>
+          ${b.custPhone ? `<div style="color:#8B7D6B;font-size:14px;margin-bottom:16px;">📞 ${b.custPhone}</div>` : '<div style="margin-bottom:16px;"></div>'}
+          <div style="background:#FAF7F2;border-radius:12px;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;text-align:left;margin-bottom:16px;">
+            <div>
+              <div style="font-size:10px;font-weight:700;color:#8B7D6B;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;">💆 บริการ</div>
+              <div style="font-size:14px;font-weight:600;color:#2C2416;">${b.service}</div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:700;color:#8B7D6B;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;">📅 วันที่</div>
+              <div style="font-size:14px;font-weight:600;color:#2C2416;">${dateLabel}</div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:700;color:#8B7D6B;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;">⏰ เวลา</div>
+              <div style="font-size:14px;font-weight:600;color:#2C2416;">${b.startTime} – ${b.endTime} <span style="color:#8B7D6B;font-size:12px;">(${b.duration} น.)</span></div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:700;color:#8B7D6B;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;">👤 พนักงาน</div>
+              <div style="font-size:14px;font-weight:600;color:#2C2416;">${b.therapist}</div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:700;color:#8B7D6B;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;">🛏️ เตียง</div>
+              <div style="font-size:14px;font-weight:600;color:#2C2416;">${b.bed}</div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:700;color:#8B7D6B;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;">💰 ราคา</div>
+              <div style="font-size:16px;font-weight:700;color:#7A8C6E;">${b.price ? '฿' + b.price.toLocaleString() : '—'}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `,
+    showConfirmButton: true,
+    confirmButtonText: 'ปิด',
+    confirmButtonColor: '#2C2416',
+    width: 380,
+    padding: '20px',
+    customClass: { popup: 'swal-spa' },
+    timer: 6000,
+    timerProgressBar: true,
+    showClass: { popup: 'animate__animated animate__fadeInDown animate__faster' },
+    hideClass: { popup: 'animate__animated animate__fadeOutUp animate__faster' },
+  });
+}
+
+// =============================================
+// LIST PAGE
+// =============================================
+function renderList() {
+  const filterDate = document.getElementById('filterDate').value;
+  const filterStatus = document.getElementById('filterStatus').value;
+
+  let filtered = state.bookings.filter(b => {
+    if (filterDate && b.date !== filterDate) return false;
+    if (filterStatus && b.status !== filterStatus) return false;
+    return true;
+  });
+
+  // Sort newest first
+  filtered.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  const tbody = document.getElementById('bookingTableBody');
+  const cardsBody = document.getElementById('bookingCardsBody');
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="padding:48px;text-align:center;color:var(--stone);">ไม่มีข้อมูลการจอง</td></tr>';
+    cardsBody.innerHTML = '<div style="padding:48px;text-align:center;color:var(--stone);">ไม่มีข้อมูลการจอง</div>';
+    return;
+  }
+
+  // Desktop table rows
+  tbody.innerHTML = filtered.map(b => `
+    <tr class="table-row">
+      <td style="padding:14px 16px;">
+        <div style="font-weight:600;font-size:14px;">${b.custName}</div>
+        <div style="color:var(--stone);font-size:12px;">${b.custPhone || '—'}</div>
+      </td>
+      <td style="padding:14px 16px;font-size:13px;">${formatDate(b.date)}</td>
+      <td style="padding:14px 16px;font-size:13px;">${b.service}</td>
+      <td style="padding:14px 16px;font-size:13px;">
+        <div>${b.startTime}–${b.endTime}</div>
+        <div style="color:var(--stone);font-size:11px;">${b.duration} นาที</div>
+      </td>
+      <td style="padding:14px 16px;font-size:13px;">${b.therapist}</td>
+      <td style="padding:14px 16px;font-size:13px;">${b.bed}</td>
+      <td style="padding:14px 16px;font-size:13px;font-weight:600;color:var(--sage);">฿${b.price.toLocaleString()}</td>
+      <td style="padding:14px 16px;">
+        <span class="badge badge-${b.status}">${statusLabel(b.status)}</span>
+      </td>
+      <td style="padding:14px 16px;">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          ${b.status === 'active' ? `
+            <button onclick="changeStatus('${b.id}','done')" style="background:#e0e7ff;color:#3730a3;border:none;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600;">✓ Done</button>
+            <button onclick="changeStatus('${b.id}','cancel')" style="background:#fee2e2;color:#dc2626;border:none;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600;">✕ ยกเลิก</button>
+          ` : `<span style="font-size:11px;color:var(--stone);font-style:italic;">—</span>`}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  // Mobile cards
+  cardsBody.innerHTML = filtered.map(b => `
+    <div class="booking-card">
+      <div class="booking-card-header">
+        <div>
+          <div class="booking-card-name">${b.custName}</div>
+          <div class="booking-card-phone">${b.custPhone || '—'}</div>
+        </div>
+        <span class="badge badge-${b.status}">${statusLabel(b.status)}</span>
+      </div>
+      <div class="booking-card-meta">
+        <div class="booking-card-meta-item">
+          <label>📅 วันที่</label>
+          <span>${formatDate(b.date)}</span>
+        </div>
+        <div class="booking-card-meta-item">
+          <label>⏰ เวลา</label>
+          <span>${b.startTime}–${b.endTime} <span style="color:var(--stone);font-size:11px;">(${b.duration}น.)</span></span>
+        </div>
+        <div class="booking-card-meta-item">
+          <label>💆 บริการ</label>
+          <span>${b.service}</span>
+        </div>
+        <div class="booking-card-meta-item">
+          <label>👤 พนักงาน</label>
+          <span>${b.therapist}</span>
+        </div>
+        <div class="booking-card-meta-item">
+          <label>🛏️ เตียง</label>
+          <span>${b.bed}</span>
+        </div>
+        <div class="booking-card-meta-item">
+          <label>💰 ราคา</label>
+          <span class="booking-card-price">฿${b.price.toLocaleString()}</span>
+        </div>
+      </div>
+      <div class="booking-card-actions">
+        ${b.status === 'active' ? `
+          <button onclick="changeStatus('${b.id}','done')" style="background:#e0e7ff;color:#3730a3;">✓ Done</button>
+          <button onclick="changeStatus('${b.id}','cancel')" style="background:#fee2e2;color:#dc2626;">✕ ยกเลิก</button>
+        ` : `<span style="font-size:12px;color:var(--stone);font-style:italic;padding:4px 0;">สถานะสิ้นสุดแล้ว</span>`}
+      </div>
+    </div>
+  `).join('');
+}
+
+function statusLabel(s) {
+  return { active: 'Active', done: 'Done', cancel: 'Cancel' }[s] || s;
+}
+
+function changeStatus(id, newStatus) {
+  const b = state.bookings.find(x => x.id === id);
+  if (!b) return;
+
+  // One-Way State Machine: active → done | cancel  (terminal states cannot transition)
+  if (b.status !== 'active') {
+    showToast('สถานะนี้สิ้นสุดแล้ว ไม่สามารถเปลี่ยนได้', 'error');
+    return;
+  }
+
+  b.status = newStatus;
+  saveState();
+  if (state.settings.gasUrl) {
+    updateGASStatus(id, newStatus);
+    showToast(`เปลี่ยนสถานะเป็น ${statusLabel(newStatus)} ✓  ซิงก์ไป Google Sheet แล้ว`, 'success');
+  } else {
+    showToast(`เปลี่ยนสถานะเป็น ${statusLabel(newStatus)} แล้ว`, 'success');
+  }
+  renderList();
+}
+
+function clearFilters() {
+  document.getElementById('filterDate').value = '';
+  document.getElementById('filterStatus').value = '';
+  renderList();
+}
+
+function confirmResetBookings() {
+  document.getElementById('resetModal').style.display = 'flex';
+}
+
+function closeResetModal() {
+  document.getElementById('resetModal').style.display = 'none';
+}
+
+function doResetBookings() {
+  state.bookings = [];
+  saveState();
+  closeResetModal();
+  renderList();
+  renderReport();
+  showToast('รีเซ็ตรายการจองเรียบร้อยแล้ว', 'success');
+}
+
+// date ใน state ผ่าน normalizeBooking แล้ว รับประกันว่าเป็น "YYYY-MM-DD" เสมอ
+// ไม่จำเป็นต้อง parseDateStr ซ้ำอีกต่อไป
+const THAI_MONTHS = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+function formatDate(d) {
+  if (!d) return '—';
+  const parts = String(d).split('-');
+  if (parts.length < 3) return String(d);
+  const y = parseInt(parts[0]), m = parseInt(parts[1]), day = parseInt(parts[2]);
+  if (isNaN(y) || isNaN(m) || isNaN(day)) return String(d);
+  return `${day} ${THAI_MONTHS[m]} ${y + 543}`;
+}
+
+// =============================================
+// REPORT — with date filter support
+// =============================================
+
+// state for report view mode: 'today' | 'thisMonth' | 'thisYear' | 'month:YYYY-MM' | 'year:YYYY'
+let reportMode = 'thisMonth';
+
+const thaiMonths = THAI_MONTHS;  // alias — ใช้ THAI_MONTHS ที่ประกาศไว้แล้ว
+
+function initReportPickers() {
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  document.getElementById('reportMonthPicker').value = todayStr.slice(0,7);
+  document.getElementById('reportYearPicker').value  = todayStr.slice(0,4);
+}
+
+function setReportPreset(mode) {
+  reportMode = mode;
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  document.getElementById('reportMonthPicker').value = todayStr.slice(0,7);
+  document.getElementById('reportYearPicker').value  = todayStr.slice(0,4);
+  renderReport();
+}
+
+function onReportMonthChange() {
+  const val = document.getElementById('reportMonthPicker').value;
+  if (val) { reportMode = 'month:' + val; renderReport(); }
+}
+
+function onReportYearChange() {
+  const val = document.getElementById('reportYearPicker').value;
+  if (val && val.length === 4) { reportMode = 'year:' + val; renderReport(); }
+}
+
+function updatePresetButtons() {}
+
+// ─── WAGE CALCULATOR ────────────────────────────────────────────────────────
+// ค่าแรง = wageAmount ของบริการนั้น (คูณตามชั่วโมงจริงที่บริการ)
+function calcWageForBookings(bookings) {
+  return bookings.filter(b => b.status === 'done').reduce((sum, b) => {
+    const svc = state.settings.services.find(s => s.name === b.service);
+    const wage = svc?.wageAmount ?? Math.round((b.price || 0) * 0.5);
+    return sum + wage * (parseInt(b.duration) || 60) / (svc?.minDuration ?? 60);
+  }, 0);
+}
+
+function renderReport() {
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const thisMonth = todayStr.slice(0,7);
+  const thisYear  = todayStr.slice(0,4);
+
+  const active = state.bookings.filter(b => b.status !== 'cancel');
+
+  // Determine filter range based on reportMode
+  let focusDate  = todayStr;   // for KPI row 1
+  let focusMonth = thisMonth;  // for KPI row 2 + chart + service
+  let focusYear  = thisYear;   // for KPI row 3
+
+  let kpiLabelDay   = 'รายได้วันนี้';
+  let kpiLabelMonth = 'รายได้เดือนนี้';
+  let kpiLabelYear  = 'รายได้ปีนี้';
+  let kpiLabelDayCus   = 'ลูกค้าวันนี้';
+  let kpiLabelMonthCus = 'ลูกค้าเดือนนี้';
+  let kpiLabelYearCus  = 'ลูกค้าปีนี้';
+  let subtitle = 'ภาพรวมรายได้และสถิติของร้าน';
+  let chartTitle = 'รายได้รายวัน';
+
+  if (reportMode === 'today') {
+    focusDate  = todayStr;
+    focusMonth = thisMonth;
+    focusYear  = thisYear;
+    subtitle = `ข้อมูลวันนี้ (${formatDate(todayStr)})`;
+  } else if (reportMode === 'thisMonth') {
+    const [y,m] = thisMonth.split('-');
+    subtitle = `ข้อมูลเดือน${thaiMonths[+m]} ${+y+543}`;
+  } else if (reportMode === 'thisYear') {
+    subtitle = `ข้อมูลปี พ.ศ. ${+thisYear+543}`;
+  } else if (reportMode.startsWith('month:')) {
+    const ym = reportMode.slice(6);
+    focusMonth = ym;
+    focusYear  = ym.slice(0,4);
+    focusDate  = ym + '-01'; // first day of that month (so KPI today = that month total)
+    const [y,m] = ym.split('-');
+    const label = `${thaiMonths[+m]} ${+y+543}`;
+    kpiLabelDay   = `รายได้ทั้งเดือน`;
+    kpiLabelDayCus = `ลูกค้าทั้งเดือน`;
+    kpiLabelMonth = `เดือนก่อนหน้า`;
+    kpiLabelMonthCus = `ลูกค้าเดือนก่อน`;
+    kpiLabelYear  = `รายได้ทั้งปี ${+y+543}`;
+    kpiLabelYearCus = `ลูกค้าทั้งปี ${+y+543}`;
+    subtitle = `ข้อมูลเดือน${label}`;
+    chartTitle = `รายได้รายวัน (${label})`;
+  } else if (reportMode.startsWith('year:')) {
+    const y = reportMode.slice(5);
+    focusYear  = y;
+    focusMonth = y + '-01';
+    focusDate  = y + '-01-01';
+    kpiLabelDay   = `รายได้ทั้งปี`;
+    kpiLabelDayCus = `ลูกค้าทั้งปี`;
+    kpiLabelMonth = `รายได้ H1`;
+    kpiLabelMonthCus = `ลูกค้า H1`;
+    kpiLabelYear  = `รายได้ H2`;
+    kpiLabelYearCus = `ลูกค้า H2`;
+    subtitle = `ข้อมูลปี พ.ศ. ${+y+543}`;
+    chartTitle = `รายได้รายเดือน (ปี ${+y+543})`;
+  }
+
+  // Calculate KPI values
+  let rev1, rev2, rev3, cus1, cus2, cus3;
+
+  if (reportMode === 'today' || reportMode === 'thisMonth' || reportMode === 'thisYear' ) {
+    rev1 = active.filter(b => b.date === focusDate).reduce((s,b) => s+b.price, 0);
+    rev2 = active.filter(b => b.date.startsWith(focusMonth)).reduce((s,b) => s+b.price, 0);
+    rev3 = active.filter(b => b.date.startsWith(focusYear)).reduce((s,b) => s+b.price, 0);
+    cus1 = active.filter(b => b.date === focusDate).length;
+    cus2 = active.filter(b => b.date.startsWith(focusMonth)).length;
+    cus3 = active.filter(b => b.date.startsWith(focusYear)).length;
+  } else if (reportMode.startsWith('month:')) {
+    const ym = reportMode.slice(6);
+    const [y,m] = ym.split('-').map(Number);
+    const prevMonth = m === 1 ? `${y-1}-12` : `${y}-${String(m-1).padStart(2,'0')}`;
+    rev1 = active.filter(b => b.date.startsWith(ym)).reduce((s,b) => s+b.price, 0);
+    rev2 = active.filter(b => b.date.startsWith(prevMonth)).reduce((s,b) => s+b.price, 0);
+    rev3 = active.filter(b => b.date.startsWith(String(y))).reduce((s,b) => s+b.price, 0);
+    cus1 = active.filter(b => b.date.startsWith(ym)).length;
+    cus2 = active.filter(b => b.date.startsWith(prevMonth)).length;
+    cus3 = active.filter(b => b.date.startsWith(String(y))).length;
+  } else if (reportMode.startsWith('year:')) {
+    const y = reportMode.slice(5);
+    const h1 = active.filter(b => b.date.startsWith(y) && +b.date.slice(5,7) <= 6);
+    const h2 = active.filter(b => b.date.startsWith(y) && +b.date.slice(5,7) >= 7);
+    rev1 = active.filter(b => b.date.startsWith(y)).reduce((s,b) => s+b.price, 0);
+    rev2 = h1.reduce((s,b) => s+b.price, 0);
+    rev3 = h2.reduce((s,b) => s+b.price, 0);
+    cus1 = active.filter(b => b.date.startsWith(y)).length;
+    cus2 = h1.length;
+    cus3 = h2.length;
+  }
+
+  // Update labels
+  document.getElementById('kpi-label-today').textContent      = kpiLabelDay;
+  document.getElementById('kpi-label-month').textContent      = kpiLabelMonth;
+  document.getElementById('kpi-label-year').textContent       = kpiLabelYear;
+  document.getElementById('kpi-label-today-cus').textContent  = kpiLabelDayCus;
+  document.getElementById('kpi-label-month-cus').textContent  = kpiLabelMonthCus;
+  document.getElementById('kpi-label-year-cus').textContent   = kpiLabelYearCus;
+  document.getElementById('reportSubtitle').textContent       = subtitle;
+  document.getElementById('chartTitle').textContent           = chartTitle;
+  const svcTitle = document.getElementById('serviceReportTitle');
+  if (svcTitle) svcTitle.textContent = 'สรุปรายได้แยกตามบริการ';
+
+  document.getElementById('kpi-today-rev').textContent = '฿' + (rev1||0).toLocaleString();
+  // คำนวณค่าแรงจากกลุ่ม booking เดียวกับ rev1/rev2/rev3
+  let wageBookings1, wageBookings2, wageBookings3;
+  if (reportMode === 'today' || reportMode === 'thisMonth' || reportMode === 'thisYear' ) {
+    wageBookings1 = active.filter(b => b.date === focusDate);
+    wageBookings2 = active.filter(b => b.date.startsWith(focusMonth));
+    wageBookings3 = active.filter(b => b.date.startsWith(focusYear));
+  } else if (reportMode.startsWith('month:')) {
+    const ym = reportMode.slice(6);
+    const [y,m] = ym.split('-').map(Number);
+    const prevMonth = m === 1 ? `${y-1}-12` : `${y}-${String(m-1).padStart(2,'0')}`;
+    wageBookings1 = active.filter(b => b.date.startsWith(ym));
+    wageBookings2 = active.filter(b => b.date.startsWith(prevMonth));
+    wageBookings3 = active.filter(b => b.date.startsWith(String(y)));
+  } else if (reportMode.startsWith('year:')) {
+    const y = reportMode.slice(5);
+    wageBookings1 = active.filter(b => b.date.startsWith(y));
+    wageBookings2 = active.filter(b => b.date.startsWith(y) && +b.date.slice(5,7) <= 6);
+    wageBookings3 = active.filter(b => b.date.startsWith(y) && +b.date.slice(5,7) >= 7);
+  }
+  const net1 = (rev1||0) - calcWageForBookings(wageBookings1 || []);
+  const net2 = (rev2||0) - calcWageForBookings(wageBookings2 || []);
+  const net3 = (rev3||0) - calcWageForBookings(wageBookings3 || []);
+
+  // Revenue cards แสดงรายได้สุทธิ (หักค่าแรงแล้ว)
+  document.getElementById('kpi-today-rev').textContent = (net1 >= 0 ? '฿' : '−฿') + Math.abs(net1).toLocaleString();
+  document.getElementById('kpi-month-rev').textContent = (net2 >= 0 ? '฿' : '−฿') + Math.abs(net2).toLocaleString();
+  document.getElementById('kpi-year-rev').textContent  = (net3 >= 0 ? '฿' : '−฿') + Math.abs(net3).toLocaleString();
+  document.getElementById('kpi-today-cus').textContent = cus1||0;
+  document.getElementById('kpi-month-cus').textContent = cus2||0;
+  document.getElementById('kpi-year-cus').textContent  = cus3||0;
+
+  if (reportMode.startsWith('year:')) {
+    renderChartYearly(reportMode.slice(5), active);
+    renderServiceReport(active, reportMode.slice(5), true);
+  } else {
+    renderChart(focusMonth, active);
+    renderServiceReport(active, focusMonth, false);
+  }
+
+  renderTopCustomers(active);
+}
+
+function renderTopCustomers(active) {
+  const container = document.getElementById('topCustomersGrid');
+  if (!container) return;
+
+  // Count visits per customer (by custName key)
+  const map = {};
+  active.forEach(b => {
+    const key = (b.custName || '').trim();
+    if (!key) return;
+    if (!map[key]) map[key] = { name: key, phone: b.custPhone || '', visits: 0, revenue: 0 };
+    map[key].visits++;
+    map[key].revenue += b.price || 0;
+  });
+
+  const sorted = Object.values(map).sort((a,b) => b.visits - a.visits).slice(0,5);
+
+  if (!sorted.length) {
+    container.innerHTML = '<div style="text-align:center;padding:32px;color:var(--stone);">ไม่มีข้อมูลลูกค้า</div>';
+    return;
+  }
+
+  const medals = ['🥇','🥈','🥉','4️⃣','5️⃣'];
+  const colors = [
+    { bg:'#FDF8EC', border:'#C8A96E', accent:'#C8A96E' },
+    { bg:'#F5F7F5', border:'#7A8C6E', accent:'#7A8C6E' },
+    { bg:'#FDF3EE', border:'#C4724A', accent:'#C4724A' },
+    { bg:'#F0F4FF', border:'#6B7FBD', accent:'#6B7FBD' },
+    { bg:'#F5F0FA', border:'#9C6BB5', accent:'#9C6BB5' },
+  ];
+
+  container.innerHTML = sorted.map((c, i) => {
+    const col = colors[i];
+    return `
+      <div style="background:${col.bg};border:1.5px solid ${col.border};border-radius:14px;padding:18px 16px;display:flex;flex-direction:column;gap:6px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:22px;">${medals[i]}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:14px;color:var(--deep);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.name}</div>
+            ${c.phone ? `<div style="font-size:11px;color:var(--stone);">${c.phone}</div>` : ''}
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+          <div>
+            <div style="font-size:10px;color:var(--stone);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;">ครั้งที่มา</div>
+            <div style="font-size:22px;font-weight:700;color:${col.accent};font-family:'Playfair Display',serif;">${c.visits}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px;color:var(--stone);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;">รายได้รวม</div>
+            <div style="font-size:14px;font-weight:700;color:var(--deep);">฿${c.revenue.toLocaleString()}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderChart(targetMonth, active) {
+  const daysInMonth = new Date(targetMonth.slice(0,4), targetMonth.slice(5,7), 0).getDate();
+  const labels = [];
+  const data = [];
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dayStr = `${targetMonth}-${String(d).padStart(2,'0')}`;
+    labels.push(d);
+    const dayBookings = active.filter(b => b.date === dayStr);
+    const rev  = dayBookings.reduce((s,b) => s+b.price, 0);
+    const wage = calcWageForBookings(dayBookings);
+    data.push(rev - wage);
+  }
+
+  const ctx = document.getElementById('revenueChart').getContext('2d');
+  if (state.revenueChart) state.revenueChart.destroy();
+  state.revenueChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'รายได้ (฿)',
+        data,
+        backgroundColor: 'rgba(200,169,110,0.7)',
+        borderColor: 'rgba(200,169,110,1)',
+        borderWidth: 1.5,
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => '฿' + ctx.parsed.y.toLocaleString() } }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(139,125,107,0.1)' },
+          ticks: { callback: v => '฿' + v.toLocaleString(), font: { family: 'Sarabun' } }
+        },
+        x: { grid: { display: false }, ticks: { font: { family: 'Sarabun', size: 11 } } }
+      }
+    }
+  });
+}
+
+function renderChartYearly(year, active) {
+  const labels = thaiMonths.slice(1);
+  const data = [];
+  for (let m = 1; m <= 12; m++) {
+    const prefix = `${year}-${String(m).padStart(2,'0')}`;
+    const monthBookings = active.filter(b => b.date.startsWith(prefix));
+    const rev  = monthBookings.reduce((s,b) => s+b.price, 0);
+    const wage = calcWageForBookings(monthBookings);
+    data.push(rev - wage);
+  }
+  const ctx = document.getElementById('revenueChart').getContext('2d');
+  if (state.revenueChart) state.revenueChart.destroy();
+  state.revenueChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'รายได้ (฿)',
+        data,
+        backgroundColor: 'rgba(200,169,110,0.7)',
+        borderColor: 'rgba(200,169,110,1)',
+        borderWidth: 1.5,
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => '฿' + ctx.parsed.y.toLocaleString() } }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(139,125,107,0.1)' },
+          ticks: { callback: v => '฿' + v.toLocaleString(), font: { family: 'Sarabun' } }
+        },
+        x: { grid: { display: false }, ticks: { font: { family: 'Sarabun', size: 11 } } }
+      }
+    }
+  });
+}
+
+function renderServiceReport(active, filter, isYear) {
+  const filtered = isYear
+    ? active.filter(b => b.date.startsWith(filter))
+    : active.filter(b => b.date.startsWith(filter));
+  const map = {};
+  filtered.forEach(b => {
+    if (!map[b.service]) map[b.service] = { count: 0, rev: 0 };
+    map[b.service].count++;
+    const svc  = state.settings.services.find(s => s.name === b.service);
+    const wage = svc?.wageAmount ?? Math.round((b.price || 0) * 0.5);
+    const net  = Math.round((b.price || 0) - wage * (parseInt(b.duration) || 60) / (svc?.minDuration ?? 60));
+    map[b.service].rev += net;
+  });
+
+  const totalRev = Object.values(map).reduce((s,v) => s+v.rev, 0);
+  const items = Object.entries(map).sort((a,b) => b[1].rev - a[1].rev);
+
+  const container = document.getElementById('serviceReport');
+  if (!items.length) {
+    container.innerHTML = '<p class="text-stone text-sm text-center py-8">ยังไม่มีข้อมูลในช่วงนี้</p>';
+    return;
+  }
+
+  container.innerHTML = items.map(([name, val]) => {
+    const pct = totalRev ? Math.round(val.rev/totalRev*100) : 0;
+    return `
+      <div class="mb-4">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-size:14px;font-weight:500;">${name}</span>
+          <span style="font-size:14px;font-weight:700;color:var(--sage);">฿${val.rev.toLocaleString()}</span>
+        </div>
+        <div style="background:var(--smoke);border-radius:4px;height:8px;overflow:hidden;">
+          <div style="background:var(--gold);height:100%;width:${pct}%;border-radius:4px;transition:width 0.5s;"></div>
+        </div>
+        <div style="font-size:11px;color:var(--stone);margin-top:4px;">${val.count} ครั้ง · ${pct}%</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// =============================================
+// SETTINGS
+// =============================================
+function renderSettings() {
+  document.getElementById('settingShopName').value = state.settings.shopName;
+  document.getElementById('settingOpen').value     = state.settings.openTime;
+  document.getElementById('settingClose').value    = state.settings.closeTime;
+  document.getElementById('settingBeds').value     = state.settings.bedCount;
+
+  // Therapist list
+  const tl = document.getElementById('therapistList');
+  tl.innerHTML = state.settings.therapists.map((t, i) => `
+    <div class="therapist-row">
+      <span>👤 ${t}</span>
+      <button onclick="removeTherapist(${i})" class="btn-danger">ลบ</button>
+    </div>
+  `).join('') || '<p class="text-stone text-sm">ยังไม่มีพนักงาน</p>';
+
+  // Service list
+  const sl = document.getElementById('serviceList');
+  const total = state.settings.services.length;
+  sl.innerHTML = state.settings.services.map((s, i) => {
+    const wa  = s.wageAmount ?? Math.round(s.price * 0.5);
+    const min = s.minDuration ?? 60;
+    return `
+    <div class="service-row">
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <button class="btn-reorder" onclick="moveService(${i},-1)" ${i === 0 ? 'disabled' : ''} title="เลื่อนขึ้น">▲</button>
+        <button class="btn-reorder" onclick="moveService(${i}, 1)" ${i === total-1 ? 'disabled' : ''} title="เลื่อนลง">▼</button>
+      </div>
+      <span class="service-row-name">💆 ${s.name}</span>
+      <span class="service-row-price">฿${s.price.toLocaleString()}</span>
+      <div class="service-wage-wrap">
+        <input type="number" value="${wa}" min="0"
+          onchange="updateServiceWage(${i}, this.value)"
+          class="service-wage-input">
+        <span class="service-wage-label">฿ ค่าแรง</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <input type="number" value="${min}" min="30" step="30"
+          onchange="updateServiceMinDuration(${i}, this.value)"
+          class="service-wage-input" style="width:56px;text-align:center;">
+        <span class="service-wage-label">นาทีขั้นต่ำ</span>
+      </div>
+      <button onclick="removeService(${i})" class="btn-danger">ลบ</button>
+    </div>`;
+  }).join('') || '<p class="text-stone text-sm">ยังไม่มีบริการ</p>';
+}
+
+async function changePassword() {
+  const oldVal = document.getElementById('oldPass').value;
+  const n = document.getElementById('newPass').value;
+  const c = document.getElementById('confirmPass').value;
+  const oldOk = await Auth.verify(oldVal, state.settings.passwordHash);
+  if (!oldOk) { showToast('รหัสผ่านปัจจุบันไม่ถูกต้อง', 'error'); return; }
+  if (!n || n.length < 4) { showToast('รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัว', 'error'); return; }
+  if (n !== c) { showToast('รหัสผ่านไม่ตรงกัน', 'error'); return; }
+  state.settings.passwordHash = await Auth.setPassword(n);
+  saveState();
+  document.getElementById('oldPass').value = '';
+  document.getElementById('newPass').value = '';
+  document.getElementById('confirmPass').value = '';
+  showToast('เปลี่ยนรหัสผ่านเรียบร้อย', 'success');
+}
+
+// ── dirty indicator: แสดงเมื่อมีการแก้ % ค่าแรงที่ยังไม่ได้บันทึก ────────────
+function markSettingsDirty() {
+  const btn = document.getElementById('saveShopBtn');
+  if (!btn) return;
+  btn.textContent = '💾 บันทึกข้อมูลร้าน (มีการเปลี่ยนแปลง)';
+  btn.style.background = 'var(--terracotta)';
+  btn.style.color = 'white';
+}
+
+function clearSettingsDirty() {
+  const btn = document.getElementById('saveShopBtn');
+  if (!btn) return;
+  btn.textContent = '💾 บันทึกข้อมูลร้าน';
+  btn.style.background = '';
+  btn.style.color = '';
+}
+
+function saveShopSettings() {
+  const openVal  = document.getElementById('settingOpen').value;
+  const closeVal = document.getElementById('settingClose').value;
+  const timeRe = /^\d{2}:\d{2}$/;
+  if (!timeRe.test(openVal))  { showToast('กรุณากรอกเวลาเปิดร้านให้ถูกต้อง (เช่น 09:00)', 'error'); return; }
+  if (!timeRe.test(closeVal)) { showToast('กรุณากรอกเวลาปิดร้านให้ถูกต้อง (เช่น 21:00)', 'error'); return; }
+  if (openVal >= closeVal)    { showToast('เวลาเปิดร้านต้องน้อยกว่าเวลาปิดร้าน', 'error'); return; }
+  state.settings.shopName  = document.getElementById('settingShopName').value.trim() || 'Thai Spa';
+  state.settings.openTime  = openVal;
+  state.settings.closeTime = closeVal;
+  state.settings.bedCount  = parseInt(document.getElementById('settingBeds').value) || 3;
+  saveState();
+  saveSettingsToGAS();
+  clearSettingsDirty();
+  updateShopName();
+  populateBookingSelects();
+  renderTimeSlots();
+  showToast('บันทึกข้อมูลร้านเรียบร้อย ✓ ซิงก์ไป Google Sheet แล้ว', 'success');
+}
+
+function addTherapist() {
+  const name = document.getElementById('newTherapist').value.trim();
+  if (!name) return;
+  if (state.settings.therapists.includes(name)) { showToast('มีพนักงานนี้อยู่แล้ว', 'error'); return; }
+  state.settings.therapists.push(name);
+  document.getElementById('newTherapist').value = '';
+  saveState();
+  saveSettingsToGAS();
+  populateBookingSelects();
+  renderSettings();
+  showToast(`เพิ่มพนักงาน "${name}" แล้ว`, 'success');
+}
+
+function removeTherapist(i) {
+  state.settings.therapists.splice(i, 1);
+  saveState();
+  saveSettingsToGAS();
+  populateBookingSelects();
+  renderSettings();
+  showToast('ลบพนักงานแล้ว', 'success');
+}
+
+function addService() {
+  const name  = document.getElementById('newServiceName').value.trim();
+  const price = parseInt(document.getElementById('newServicePrice').value) || 0;
+  const wage  = Math.max(0, parseInt(document.getElementById('newServiceWage').value) || 0);
+  const minDuration = parseInt(document.getElementById('newServiceMinDuration').value) || 60;
+  if (!name || !price) { showToast('กรุณากรอกชื่อและราคาบริการ', 'error'); return; }
+  state.settings.services.push({ name, price, wageAmount: wage, minDuration });
+  document.getElementById('newServiceName').value  = '';
+  document.getElementById('newServicePrice').value = '';
+  document.getElementById('newServiceWage').value  = '';
+  document.getElementById('newServiceMinDuration').value = '';
+  saveState();
+  saveSettingsToGAS();
+  populateBookingSelects();
+  renderSettings();
+  showToast(`เพิ่มบริการ "${name}" แล้ว`, 'success');
+}
+
+function updateServiceWage(i, value) {
+  state.settings.services[i].wageAmount = Math.max(0, parseInt(value) || 0);
+  saveState();
+  markSettingsDirty();
+}
+
+function updateServiceMinDuration(i, value) {
+  state.settings.services[i].minDuration = Math.max(30, parseInt(value) || 60);
+  saveState();
+  markSettingsDirty();
+}
+
+function removeService(i) {
+  state.settings.services.splice(i, 1);
+  saveState();
+  saveSettingsToGAS();
+  populateBookingSelects();
+  renderSettings();
+  showToast('ลบบริการแล้ว', 'success');
+}
+
+function moveService(i, dir) {
+  const svcs = state.settings.services;
+  const j = i + dir;
+  if (j < 0 || j >= svcs.length) return;
+  [svcs[i], svcs[j]] = [svcs[j], svcs[i]];
+  saveState();
+  saveSettingsToGAS();
+  populateBookingSelects();
+  renderSettings();
+}
+
+function saveGasUrl() {
+  const url = document.getElementById('gasUrl').value.trim();
+  if (!url) { showToast('กรุณากรอก URL ก่อน', 'error'); return; }
+  state.settings.gasUrl = url;
+  saveState();
+  // แสดงคำแนะนำให้ hardcode ลงไฟล์ด้วย
+  showToast('บันทึก URL ใน browser นี้แล้ว ✓', 'success');
+  renderGasUrlSection();
+}
+
+function renderGasUrlSection() {
+  const url        = state.settings.gasUrl || '';
+  const isHardcoded = typeof HARDCODED_GAS_URL === 'string' && HARDCODED_GAS_URL.trim() !== '';
+  const statusEl   = document.getElementById('gasUrlStatus');
+  if (!statusEl) return;
+  if (isHardcoded) {
+    statusEl.innerHTML = `<span class="gas-status-ok">✓ เชื่อมต่ออยู่ (Hardcoded ในไฟล์)</span>
+      <br><span class="gas-status-note">${HARDCODED_GAS_URL.trim()}</span>`;
+  } else if (url) {
+    statusEl.innerHTML = `<span class="gas-status-warn">⚠ บันทึกใน Browser นี้เท่านั้น</span>
+      <br><span class="gas-status-note">เครื่องอื่นยังต้องกรอกใหม่ — แนะนำให้ Hardcode ลงไฟล์</span>`;
+  } else {
+    statusEl.innerHTML = `<span class="gas-status-err">✗ ยังไม่ได้เชื่อมต่อ</span>`;
+  }
+}
+
+function copyGasCode() {
+  navigator.clipboard.writeText(getGASCode()).then(() => {
+    showToast('คัดลอกโค้ดแล้ว', 'success');
+  });
+}
+
+// =============================================
+// GOOGLE APPS SCRIPT
+// =============================================
+function getGASCode() {
+  return `// Thai Spa Booking System - Google Apps Script v3
+// วิธีใช้: Extensions → Apps Script → วางโค้ด → Deploy → Web App
+// Execute as: Me | Who has access: Anyone → Copy URL ไปวางในตั้งค่าระบบ
+//
+// หลักการ: เก็บทุก field เป็น plain text ตั้งแต่ต้น ไม่ให้ Sheets แปลง date/time เลย
+
+const BOOKING_SHEET  = 'Bookings';
+const SETTINGS_SHEET = 'Settings';
+const TZ = 'Asia/Bangkok';
+
+// ─── ROUTING ───────────────────────────────────────────────────────────────
+function doPost(e) {
+  try {
+    const data   = JSON.parse(e.postData ? e.postData.contents : '{}');
+    const action = data.action;
+    if (action === 'saveBooking')  return respond(saveBooking(data.booking));
+    if (action === 'updateStatus') return respond(updateStatus(data.id, data.status));
+    if (action === 'saveSettings') return respond(saveSettings(data.settings));
+    return respond({ error: 'Unknown action' });
+  } catch(err) {
+    return respond({ error: err.message });
+  }
+}
+
+function doGet(e) {
+  const action = (e.parameter && e.parameter.action) || 'getAll';
+  if (action === 'getAll')      return respond(getAll());
+  if (action === 'getBookings') return respond(getBookings());
+  if (action === 'getSettings') return respond(getSettings());
+  return respond({ error: 'Unknown action' });
+}
+
+function respond(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ─── SHEET HELPERS ─────────────────────────────────────────────────────────
+function getBookingSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(BOOKING_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(BOOKING_SHEET);
+    const headers = ['ID','ชื่อลูกค้า','เบอร์โทร','วันที่','บริการ',
+                     'ระยะเวลา(นาที)','พนักงาน','เตียง','เวลาเริ่ม',
+                     'เวลาจบ','ราคา','สถานะ','วันที่จอง'];
+    sheet.appendRow(headers);
+    // บังคับทุก column เป็น plain text ตั้งแต่ต้น
+    sheet.getRange(1, 1, 1, headers.length)
+         .setBackground('#2C2416').setFontColor('#C8A96E').setFontWeight('bold');
+    sheet.getRange(1, 1, sheet.getMaxRows(), headers.length)
+         .setNumberFormat('@STRING@');
+  }
+  return sheet;
+}
+
+function getSettingsSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SETTINGS_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(SETTINGS_SHEET);
+    sheet.appendRow(['key', 'value']);
+    sheet.getRange(1,1,1,2).setBackground('#2C2416').setFontColor('#C8A96E').setFontWeight('bold');
+    sheet.getRange(1, 1, sheet.getMaxRows(), 2).setNumberFormat('@STRING@');
+  }
+  return sheet;
+}
+
+// แปลง cell value ที่ Sheets อาจแปลงเป็น Date กลับเป็น string
+// รองรับทั้ง Date object, decimal fraction (0.375 = 09:00), และ string ปกติ
+function cellToString(val) {
+  if (val === null || val === undefined || val === '') return '';
+  if (val instanceof Date) {
+    return Utilities.formatDate(val, TZ, 'HH:mm');
+  }
+  // decimal fraction เช่น 0.375 = 09:00
+  var num = Number(val);
+  if (!isNaN(num) && num > 0 && num < 1) {
+    var totalMin = Math.round(num * 24 * 60);
+    return String(Math.floor(totalMin / 60)).padStart(2, '0') + ':' + String(totalMin % 60).padStart(2, '0');
+  }
+  return String(val);
+}
+
+function cellToDate(val) {
+  if (val === null || val === undefined || val === '') return '';
+  if (val instanceof Date) {
+    return Utilities.formatDate(val, TZ, 'yyyy-MM-dd');
+  }
+  return String(val);
+}
+
+// ─── BOOKINGS ──────────────────────────────────────────────────────────────
+function saveBooking(b) {
+  const sheet = getBookingSheet();
+  const data  = sheet.getDataRange().getValues();
+
+  // ป้องกัน duplicate
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(b.id)) return { success: true, note: 'duplicate_skipped' };
+  }
+
+  const lastRow = sheet.getLastRow() + 1;
+  const rowData = [
+    String(b.id),
+    String(b.custName  || ''),
+    String(b.custPhone || ''),
+    String(b.date      || ''),   // YYYY-MM-DD string
+    String(b.service   || ''),
+    String(b.duration  || ''),
+    String(b.therapist || ''),
+    String(b.bed       || ''),
+    String(b.startTime || ''),   // HH:MM string
+    String(b.endTime   || ''),   // HH:MM string
+    String(b.price     || ''),
+    String(b.status    || ''),
+    String(b.createdAt || '')
+  ];
+
+  // setValues แล้วบังคับ plain text ทันที ก่อน Sheets จะ parse
+  const range = sheet.getRange(lastRow, 1, 1, rowData.length);
+  range.setNumberFormat('@STRING@');
+  range.setValues([rowData]);
+
+  return { success: true };
+}
+
+function updateStatus(id, status) {
+  const sheet = getBookingSheet();
+  const data  = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(id)) {
+      sheet.getRange(i + 1, 12).setValue(String(status));
+      const row = sheet.getRange(i + 1, 1, 1, 13);
+      if (status === 'done')        row.setBackground('#e0e7ff');
+      else if (status === 'cancel') row.setBackground('#fee2e2');
+      else                          row.setBackground(null);
+      return { success: true };
+    }
+  }
+  return { error: 'ID not found: ' + id };
+}
+
+function getBookings() {
+  const sheet = getBookingSheet();
+  const data  = sheet.getDataRange().getValues();
+  if (data.length <= 1) return { bookings: [] };
+
+  const bookings = data.slice(1).map(function(row) {
+    return {
+      id:        String(row[0]),
+      custName:  String(row[1]),
+      custPhone: String(row[2]),
+      date:      cellToDate(row[3]),      // รับประกัน YYYY-MM-DD
+      service:   String(row[4]),
+      duration:  parseInt(row[5])  || 0,
+      therapist: String(row[6]),
+      bed:       String(row[7]),
+      startTime: cellToString(row[8]),    // รับประกัน HH:MM
+      endTime:   cellToString(row[9]),    // รับประกัน HH:MM
+      price:     Number(row[10])  || 0,
+      status:    String(row[11]),
+      createdAt: String(row[12])
+    };
+  });
+  return { bookings: bookings };
+}
+
+// ─── SETTINGS ──────────────────────────────────────────────────────────────
+function saveSettings(settings) {
+  const sheet = getSettingsSheet();
+  const map = {
+    shopName:   String(settings.shopName  || 'Thai Spa'),
+    openTime:   String(settings.openTime  || '09:00'),
+    closeTime:  String(settings.closeTime || '21:00'),
+    bedCount:   String(settings.bedCount  || 3),
+    therapists: JSON.stringify(settings.therapists || []),
+    services:   JSON.stringify(settings.services   || []),
+    passwordHash: String(settings.passwordHash || '')
+  };
+  const data = sheet.getDataRange().getValues();
+  Object.keys(map).forEach(function(k) {
+    var found = false;
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === k) {
+        sheet.getRange(i + 1, 2).setValue(map[k]);
+        found = true;
+        break;
+      }
+    }
+    if (!found) sheet.appendRow([k, map[k]]);
+  });
+  return { success: true };
+}
+
+function getSettings() {
+  const sheet = getSettingsSheet();
+  const data  = sheet.getDataRange().getValues();
+  if (data.length <= 1) return { settings: null };
+  const map = {};
+  data.slice(1).forEach(function(row) { map[String(row[0])] = row[1]; });
+
+  // openTime / closeTime อาจถูก Sheets แปลงเป็น Date ถ้า Sheet ยังไม่ได้ format
+  return { settings: {
+    shopName:   String(map.shopName  || 'Thai Spa'),
+    openTime:   cellToString(map.openTime)  || '09:00',
+    closeTime:  cellToString(map.closeTime) || '21:00',
+    bedCount:   parseInt(map.bedCount) || 3,
+    therapists: JSON.parse(map.therapists || '[]'),
+    services:   JSON.parse(map.services   || '[]'),
+    passwordHash: String(map.passwordHash || '')
+  }};
+}
+
+// ─── GET ALL ───────────────────────────────────────────────────────────────
+function getAll() {
+  return { bookings: getBookings().bookings, settings: getSettings().settings };
+}
+}`;
+}
+
+async function saveToGAS(booking) {
+  if (!state.settings.gasUrl) return;
+  try {
+    await fetch(state.settings.gasUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'saveBooking', booking })
+    });
+  } catch(e) {
+    showToast('⚠️ บันทึกลง Google Sheet ไม่สำเร็จ (ข้อมูลยังอยู่ใน local)', 'error');
+  }
+}
+
+async function updateGASStatus(id, status) {
+  if (!state.settings.gasUrl) return;
+  try {
+    await fetch(state.settings.gasUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'updateStatus', id, status })
+    });
+  } catch(e) {
+    showToast('⚠️ อัปเดตสถานะลง Google Sheet ไม่สำเร็จ', 'error');
+  }
+}
+
+// =============================================
+// TOAST
+// =============================================
+function showToast(msg, type = 'success') {
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.textContent = msg;
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// =============================================
+// INIT (async เพื่อรอ loadState ที่ต้อง hash password)
+// =============================================
+(async () => {
+  await loadState();
+
+  // Demo data
+  if (state.bookings.length === 0) {
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now()-86400000).toISOString().split('T')[0];
+    state.bookings = [
+      { id:'1', custName:'คุณสมใจ', custPhone:'089-111-2222', date:today, service:'นวดแผนไทย', duration:60, therapist:'คุณนอม', bed:'เตียงที่ 1', startTime:'10:00', endTime:'11:00', price:300, status:'active', createdAt:new Date().toISOString() },
+      { id:'2', custName:'คุณวิชัย', custPhone:'086-333-4444', date:today, service:'นวดน้ำมัน', duration:90, therapist:'คุณดำ', bed:'เตียงที่ 2', startTime:'13:00', endTime:'14:30', price:400, status:'done', createdAt:new Date().toISOString() },
+      { id:'3', custName:'คุณนภา', custPhone:'092-555-6666', date:yesterday, service:'นวดฝ่าเท้า', duration:60, therapist:'คุณนอม', bed:'เตียงที่ 3', startTime:'15:00', endTime:'16:00', price:250, status:'done', createdAt:new Date(Date.now()-86400000).toISOString() },
+      { id:'4', custName:'คุณประมวล', custPhone:'081-777-8888', date:yesterday, service:'อโรมา', duration:120, therapist:'คุณดำ', bed:'เตียงที่ 1', startTime:'09:00', endTime:'11:00', price:500, status:'cancel', createdAt:new Date(Date.now()-86400000).toISOString() },
+    ];
+    saveState();
+  }
+
+  initApp();
+})();
+</script>
+</body>
+</html>

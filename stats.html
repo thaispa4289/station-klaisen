@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>สถานีคลายเส้น — สถิติพนักงาน</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+
+/* ══════════════════════════════════════════════
+   TOKENS
+══════════════════════════════════════════════ */
+:root {
+  --cream:      #FAF7F2;
+  --smoke:      #F0EBE3;
+  --stone:      #8B7D6B;
+  --deep:       #2C2416;
+  --gold:       #C8A96E;
+  --gold-light: #E8D5A3;
+  --sage:       #7A8C6E;
+  --terra:      #C4724A;
+  --border:     rgba(139,125,107,0.15);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sarabun', sans-serif; background: var(--cream); color: var(--deep); min-height: 100vh; }
+
+/* ══════════════════════════════════════════════
+   AUTH
+══════════════════════════════════════════════ */
+#authScreen {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #1a1208 0%, #2C2416 50%, #3d3220 100%);
+  position: relative; overflow: hidden;
+}
+#authScreen::before {
+  content: ''; position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(200,169,110,0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(122,140,110,0.06) 0%, transparent 50%);
+}
+.auth-card {
+  background: rgba(250,247,242,0.04);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(200,169,110,0.2);
+  border-radius: 24px;
+  width: 100%; max-width: 400px;
+  position: relative; z-index: 1;
+}
+.auth-body { padding: 36px 32px 32px; }
+
+.auth-logo { text-align: center; margin-bottom: 28px; }
+.auth-logo .brand { font-family: 'Playfair Display', serif; font-size: 30px; color: var(--gold); letter-spacing: 2px; }
+.auth-logo .sub   { font-size: 11px; color: rgba(250,247,242,0.35); letter-spacing: 3px; text-transform: uppercase; margin-top: 4px; }
+
+.auth-back  { font-size: 13px; color: rgba(200,169,110,0.6); cursor: pointer; margin-bottom: 16px; display: inline-block; transition: color 0.2s; }
+.auth-back:hover { color: var(--gold); }
+.auth-title { font-size: 16px; font-weight: 700; color: var(--gold-light); margin-bottom: 18px; }
+
+.auth-msg { border-radius: 10px; padding: 11px 15px; font-size: 13px; margin-bottom: 14px; display: none; line-height: 1.5; }
+.auth-msg.err { background: rgba(220,38,38,0.15); border: 1px solid rgba(220,38,38,0.3);  color: #fca5a5; }
+.auth-msg.ok  { background: rgba(122,140,110,0.18); border: 1px solid rgba(122,140,110,0.35); color: #bbf7d0; }
+
+.auth-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; }
+.auth-divider::before,
+.auth-divider::after { content: ''; flex: 1; height: 1px; background: rgba(200,169,110,0.15); }
+.auth-divider span { font-size: 12px; color: rgba(200,169,110,0.4); }
+
+/* ── Form inputs ── */
+.field-input {
+  width: 100%; padding: 13px 16px; margin-bottom: 12px;
+  background: rgba(250,247,242,0.06);
+  border: 1.5px solid rgba(200,169,110,0.18);
+  border-radius: 11px;
+  font-family: 'Sarabun', sans-serif; font-size: 15px; color: var(--cream);
+  outline: none; transition: all 0.2s;
+}
+.field-input:focus       { border-color: var(--gold); background: rgba(250,247,242,0.1); box-shadow: 0 0 0 3px rgba(200,169,110,0.1); }
+.field-input::placeholder { color: rgba(250,247,242,0.3); }
+.field-hint { font-size: 11px; color: rgba(200,169,110,0.45); margin-top: -8px; margin-bottom: 14px; line-height: 1.6; }
+
+/* ── Auth buttons ── */
+.btn-auth {
+  width: 100%; padding: 14px;
+  background: var(--gold); color: var(--deep);
+  border: none; border-radius: 11px;
+  font-family: 'Sarabun', sans-serif; font-size: 15px; font-weight: 700;
+  cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-auth:hover    { background: #b8953a; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(200,169,110,0.25); }
+.btn-auth:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.btn-auth-secondary {
+  width: 100%; padding: 13px;
+  background: transparent;
+  border: 1.5px solid rgba(200,169,110,0.3); border-radius: 11px;
+  font-family: 'Sarabun', sans-serif; font-size: 14px; font-weight: 700; color: var(--gold-light);
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-auth-secondary:hover { background: rgba(200,169,110,0.08); border-color: var(--gold); }
+
+.btn-link {
+  background: none; border: none; cursor: pointer; padding: 0;
+  color: rgba(200,169,110,0.7);
+  font-family: 'Sarabun', sans-serif; font-size: 13px; font-weight: 600;
+  transition: color 0.2s;
+}
+.btn-link:hover { color: var(--gold); text-decoration: underline; }
+
+/* ══════════════════════════════════════════════
+   APP SHELL
+══════════════════════════════════════════════ */
+#app { display: none; min-height: 100vh; }
+
+.topbar {
+  background: var(--deep); padding: 0 24px; height: 60px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 50;
+  box-shadow: 0 2px 20px rgba(44,36,22,0.3);
+}
+.topbar-brand { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 20px; letter-spacing: 1px; }
+.topbar-brand span { font-size: 11px; color: rgba(200,169,110,0.45); font-family: 'Sarabun', sans-serif; letter-spacing: 2px; text-transform: uppercase; margin-left: 8px; }
+.topbar-right { display: flex; align-items: center; gap: 14px; }
+
+.emp-pill { display: flex; align-items: center; gap: 9px; background: rgba(200,169,110,0.1); border: 1px solid rgba(200,169,110,0.2); border-radius: 30px; padding: 5px 14px 5px 7px; }
+.emp-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--gold); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--deep); }
+.emp-name   { font-size: 13px; font-weight: 600; color: var(--gold-light); }
+
+.btn-logout {
+  background: transparent; border: 1px solid rgba(200,169,110,0.22);
+  color: rgba(200,169,110,0.55); padding: 6px 13px; border-radius: 8px;
+  font-size: 12px; cursor: pointer; font-family: 'Sarabun', sans-serif; transition: all 0.2s;
+}
+.btn-logout:hover { border-color: var(--gold); color: var(--gold); }
+
+.main-wrap { padding: 30px 24px; max-width: 1100px; margin: 0 auto; }
+
+/* ══════════════════════════════════════════════
+   GREETING & SYNC
+══════════════════════════════════════════════ */
+.greeting { margin-bottom: 26px; }
+.greeting-hello { font-family: 'Playfair Display', serif; font-size: 26px; color: var(--deep); margin-bottom: 3px; }
+.greeting-date  { font-size: 13px; color: var(--stone); margin-bottom: 8px; }
+.therapist-tag  { display: inline-flex; align-items: center; gap: 6px; background: rgba(200,169,110,0.1); border: 1px solid rgba(200,169,110,0.2); border-radius: 20px; padding: 4px 14px; font-size: 12px; color: var(--stone); }
+.therapist-tag strong { color: var(--deep); font-weight: 700; }
+
+.sync-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; padding: 11px 18px; background: white; border-radius: 12px; border: 1px solid var(--border); }
+.sync-info       { font-size: 12px; color: var(--stone); }
+.sync-info strong { color: var(--deep); }
+.btn-sync { background: var(--smoke); border: 1px solid var(--border); color: var(--stone); padding: 7px 16px; border-radius: 8px; font-family: 'Sarabun', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
+.btn-sync:hover { background: var(--deep); color: var(--gold); border-color: var(--deep); }
+
+/* ══════════════════════════════════════════════
+   PERIOD FILTER
+══════════════════════════════════════════════ */
+.period-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 24px; }
+
+.period-picker {
+  padding: 9px 14px; border-radius: 10px;
+  border: 1.5px solid var(--border); background: white;
+  font-family: 'Sarabun', sans-serif; font-size: 13px; color: var(--deep);
+  outline: none; cursor: pointer; transition: border-color 0.2s;
+}
+.period-picker:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(200,169,110,0.1); }
+
+.btn-today {
+  padding: 9px 18px; border-radius: 10px;
+  border: 1.5px solid var(--border); background: var(--smoke);
+  font-family: 'Sarabun', sans-serif; font-size: 13px; font-weight: 600; color: var(--stone);
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-today:hover { background: var(--deep); color: var(--gold); border-color: var(--deep); }
+
+/* ── Period Tabs ── */
+.period-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.period-tab {
+  padding: 7px 16px; border-radius: 20px;
+  border: 1.5px solid var(--border); background: white;
+  font-family: 'Sarabun', sans-serif; font-size: 13px; font-weight: 600; color: var(--stone);
+  cursor: pointer; transition: all 0.2s;
+}
+.period-tab:hover { border-color: var(--gold); color: var(--deep); }
+.period-tab.active { background: var(--deep); color: var(--gold); border-color: var(--deep); }
+
+.period-inputs { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.period-input-group { display: none; }
+.period-input-group.show { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* ── KPI trend badge ── */
+.kpi-trend { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-top: 6px; }
+.kpi-trend.up   { background: #dcfce7; color: #166534; }
+.kpi-trend.down { background: #fee2e2; color: #dc2626; }
+.kpi-trend.flat { background: var(--smoke); color: var(--stone); }
+
+/* ══════════════════════════════════════════════
+   STAT CARDS
+══════════════════════════════════════════════ */
+.section-title {
+  font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--stone); margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+.cards-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 28px; }
+
+.stat-card {
+  background: white; border-radius: 20px; border: 1px solid var(--border);
+  padding: 22px; position: relative; overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(44,36,22,0.1); }
+.stat-card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; }
+.stat-card.customers::after { background: linear-gradient(90deg, var(--gold), var(--gold-light)); }
+.stat-card.earnings::after  { background: linear-gradient(90deg, var(--sage), #a0c090); }
+.stat-card.hours::after     { background: linear-gradient(90deg, var(--terra), #e89070); }
+
+.stat-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 19px; margin-bottom: 14px; }
+.customers .stat-icon { background: rgba(200,169,110,0.12); }
+.earnings  .stat-icon { background: rgba(122,140,110,0.12); }
+.hours     .stat-icon { background: rgba(196,114,74,0.12); }
+
+.stat-value { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 700; color: var(--deep); line-height: 1; margin-bottom: 7px; }
+.stat-value .unit { font-size: 14px; font-weight: 400; color: var(--stone); font-family: 'Sarabun', sans-serif; margin-left: 3px; }
+.stat-label { font-size: 13px; color: var(--stone); font-weight: 500; }
+.stat-sub   { font-size: 11px; color: rgba(139,125,107,0.6); margin-top: 3px; }
+
+/* ══════════════════════════════════════════════
+   JOB HISTORY TABLE
+══════════════════════════════════════════════ */
+.jobs-section { background: white; border-radius: 20px; border: 1px solid var(--border); overflow: hidden; margin-bottom: 24px; }
+.jobs-header  { padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.jobs-title   { font-size: 15px; font-weight: 700; color: var(--deep); }
+.jobs-count   { font-size: 12px; color: var(--stone); background: var(--smoke); padding: 3px 10px; border-radius: 20px; }
+
+.job-row { padding: 13px 24px; border-bottom: 1px solid rgba(139,125,107,0.06); display: grid; grid-template-columns: 1fr 120px 100px 90px 80px; align-items: center; gap: 12px; transition: background 0.15s; }
+.job-row:last-child  { border-bottom: none; }
+.job-row:hover       { background: rgba(200,169,110,0.03); }
+.job-row.header-row  { background: var(--smoke); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--stone); padding: 10px 24px; }
+.job-customer { font-weight: 600; font-size: 14px; }
+.job-service  { font-size: 12px; color: var(--stone); margin-top: 2px; }
+
+.badge { border-radius: 20px; font-size: 11px; font-weight: 700; padding: 3px 10px; display: inline-block; }
+.badge-done   { background: #e0e7ff; color: #3730a3; }
+.badge-active { background: #dcfce7; color: #166534; }
+.badge-cancel { background: #fee2e2; color: #dc2626; }
+
+.empty-state       { text-align: center; padding: 48px; color: var(--stone); }
+.empty-state .emoji { font-size: 32px; margin-bottom: 10px; }
+
+/* ══════════════════════════════════════════════
+   UTILITIES
+══════════════════════════════════════════════ */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  padding: 13px 20px; border-radius: 12px;
+  font-family: 'Sarabun', sans-serif; font-size: 14px; font-weight: 500;
+  z-index: 999; box-shadow: 0 8px 24px rgba(44,36,22,0.18);
+  animation: slideUp 0.3s ease;
+}
+.toast-success { background: var(--deep); color: var(--gold); }
+.toast-error   { background: #dc2626; color: white; }
+
+@keyframes slideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+@keyframes spin    { to { transform: rotate(360deg); } }
+
+.spinner-sm { width: 16px; height: 16px; border: 2px solid rgba(44,36,22,0.15); border-top-color: var(--deep); border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .main-wrap   { padding: 18px 14px; }
+  .cards-grid  { grid-template-columns: 1fr; gap: 12px; }
+  .topbar      { padding: 0 14px; }
+  .topbar-brand span { display: none; }
+  .emp-name    { display: none; }
+  .auth-body   { padding: 24px 20px 20px; }
+  .job-row     { grid-template-columns: 1fr 80px 70px; }
+  .job-row > *:nth-child(4),
+  .job-row > *:nth-child(5) { display: none; }
+}
+
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════
+     AUTH SCREEN
+══════════════════════════════════════════════ -->
+<div id="authScreen">
+  <div class="auth-card">
+    <div class="auth-body">
+
+      <div class="auth-logo">
+        <div class="brand">สถานีคลายเส้น</div>
+        <div class="sub">Staff Portal</div>
+      </div>
+
+      <div id="authMsg" class="auth-msg"></div>
+
+      <!-- LOGIN -->
+      <div id="formLogin">
+        <input id="loginUser" class="field-input" type="text"     placeholder="ชื่อผู้ใช้" autocomplete="username">
+        <input id="loginPass" class="field-input" type="password" placeholder="รหัสผ่าน"  autocomplete="current-password">
+        <button class="btn-auth" id="btnLogin" onclick="doLogin()">
+          <span id="loginBtnTxt">เข้าสู่ระบบ</span>
+        </button>
+        <div style="text-align:center;margin-top:16px;">
+          <button class="btn-link" onclick="switchTab('forgot')">ลืมรหัสผ่าน?</button>
+        </div>
+        <div class="auth-divider"><span>หรือ</span></div>
+        <button class="btn-auth-secondary" onclick="switchTab('register')">สมัครบัญชีใหม่</button>
+      </div>
+
+      <!-- REGISTER -->
+      <div id="formRegister" style="display:none;">
+        <div class="auth-back" onclick="switchTab('login')">← กลับ</div>
+        <div class="auth-title">สมัครบัญชี</div>
+        <input id="regUser"      class="field-input" type="text"     placeholder="ชื่อผู้ใช้"                   autocomplete="off">
+        <input id="regPass"      class="field-input" type="password" placeholder="รหัสผ่าน (อย่างน้อย 6 ตัว)"  autocomplete="new-password">
+        <input id="regPass2"     class="field-input" type="password" placeholder="ยืนยันรหัสผ่าน"               autocomplete="new-password">
+        <input id="regTherapist" class="field-input" type="text"     placeholder="ชื่อพนักงานใน Sheet การจอง">
+        <div class="field-hint">⚠️ ต้องตรงกับชื่อในคอลัมน์ "พนักงาน" ของ Sheet การจองพอดี</div>
+        <button class="btn-auth" id="btnRegister" onclick="doRegister()">
+          <span id="registerBtnTxt">สมัครบัญชี</span>
+        </button>
+      </div>
+
+      <!-- FORGOT PASSWORD -->
+      <div id="formForgot" style="display:none;">
+        <div class="auth-back" onclick="switchTab('login')">← กลับ</div>
+        <div class="auth-title">ตั้งรหัสผ่านใหม่</div>
+        <input id="forgotUser"      class="field-input" type="text"     placeholder="ชื่อผู้ใช้"                  autocomplete="off">
+        <input id="forgotTherapist" class="field-input" type="text"     placeholder="ชื่อพนักงานใน Sheet การจอง">
+        <div class="field-hint">ใช้ยืนยันตัวตน — ต้องตรงกับที่ลงทะเบียนไว้พอดี</div>
+        <input id="forgotPass"  class="field-input" type="password" placeholder="รหัสผ่านใหม่"         autocomplete="new-password">
+        <input id="forgotPass2" class="field-input" type="password" placeholder="ยืนยันรหัสผ่านใหม่"   autocomplete="new-password">
+        <button class="btn-auth" id="btnForgot" onclick="doResetPassword()">
+          <span id="forgotBtnTxt">ตั้งรหัสผ่านใหม่</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MAIN APP
+══════════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-brand">สถานีคลายเส้น <span>STAFF PORTAL</span></div>
+    <div class="topbar-right">
+      <div class="emp-pill">
+        <div class="emp-avatar" id="empAvatar">?</div>
+        <span class="emp-name" id="empNameDisplay">—</span>
+      </div>
+      <button class="btn-logout" onclick="doLogout()">ออกจากระบบ</button>
+    </div>
+  </div>
+
+  <div class="main-wrap">
+
+    <!-- Greeting -->
+    <div class="greeting">
+      <div class="greeting-hello" id="greetingText">สวัสดี 👋</div>
+      <div class="greeting-date"  id="greetingDate"></div>
+      <div class="therapist-tag">📋 ดึงข้อมูลพนักงาน: <strong id="therapistName">—</strong></div>
+    </div>
+
+    <!-- Sync Bar -->
+    <div class="sync-bar">
+      <div class="sync-info">🔗 Google Sheet — <strong id="syncStatus">กำลังโหลด...</strong></div>
+      <button class="btn-sync" onclick="syncData()"><span id="syncIcon">🔄</span> ซิงค์</button>
+    </div>
+
+    <!-- Period Filter -->
+    <div style="margin-bottom:24px;">
+      <!-- Tabs -->
+      <div class="period-tabs">
+        <button class="period-tab active" id="tabToday"  onclick="setTab('today')">📅 วันนี้</button>
+        <button class="period-tab"        id="tabDay"    onclick="setTab('day')">🗓️ เลือกวัน</button>
+        <button class="period-tab"        id="tabMonth"  onclick="setTab('month')">📆 รายเดือน</button>
+        <button class="period-tab"        id="tabYear"   onclick="setTab('year')">🗃️ รายปี</button>
+      </div>
+      <!-- Input groups -->
+      <div class="period-input-group" id="grpDay">
+        <input type="date" id="periodDayPicker" class="period-picker" onchange="onDayChange()">
+        <div id="dayNavBtns" style="display:flex;gap:6px;">
+          <button class="btn-today" onclick="shiftDay(-1)">◀ เมื่อวาน</button>
+          <button class="btn-today" onclick="shiftDay(1)">พรุ่งนี้ ▶</button>
+        </div>
+      </div>
+      <div class="period-input-group" id="grpMonth">
+        <input type="month" id="periodMonthPicker" class="period-picker" onchange="onMonthChange()">
+      </div>
+      <div class="period-input-group" id="grpYear">
+        <input type="number" id="periodYearPicker" class="period-picker" placeholder="ปี ค.ศ." min="2020" max="2099" style="width:110px;" onchange="onYearChange()">
+      </div>
+    </div>
+
+    <!-- KPI: ลูกค้า -->
+    <div class="section-title">👤 ลูกค้า</div>
+    <div class="cards-grid">
+      <div class="stat-card customers">
+        <div class="stat-icon">🙋</div>
+        <div class="stat-value" id="custCount">—<span class="unit">คน</span></div>
+        <div class="stat-label">รับบริการทั้งหมด</div>
+        <div class="stat-sub"   id="custSub">ไม่รวมยกเลิก</div>
+        <div id="trendCust" class="kpi-trend flat" style="display:none;"></div>
+      </div>
+      <div class="stat-card customers">
+        <div class="stat-icon">✅</div>
+        <div class="stat-value" id="custDone">—<span class="unit">คน</span></div>
+        <div class="stat-label">เสร็จสิ้นบริการ</div>
+        <div class="stat-sub">สถานะ Done</div>
+      </div>
+      <div class="stat-card customers">
+        <div class="stat-icon">📋</div>
+        <div class="stat-value" id="custActive">—<span class="unit">คน</span></div>
+        <div class="stat-label">กำลังให้บริการ / จอง</div>
+        <div class="stat-sub">สถานะ Active</div>
+      </div>
+    </div>
+
+    <!-- KPI: รายได้ -->
+    <div class="section-title">💰 รายได้ค่าแรง</div>
+    <div class="cards-grid">
+      <div class="stat-card earnings">
+        <div class="stat-icon">💵</div>
+        <div class="stat-value" id="totalEarn">—<span class="unit">บาท</span></div>
+        <div class="stat-label">รายได้รวม (done)</div>
+        <div class="stat-sub"   id="earnSub">คำนวณจากงานที่เสร็จ</div>
+        <div id="trendEarn" class="kpi-trend flat" style="display:none;"></div>
+      </div>
+      <div class="stat-card earnings">
+        <div class="stat-icon">🏆</div>
+        <div class="stat-value" id="topService" style="font-size:20px;">—</div>
+        <div class="stat-label">บริการยอดนิยม</div>
+        <div class="stat-sub"   id="topServiceSub">อันดับ 1 ช่วงนี้</div>
+      </div>
+    </div>
+
+    <!-- KPI: ชั่วโมง -->
+    <div class="section-title">⏱️ ชั่วโมงทำงาน</div>
+    <div class="cards-grid">
+      <div class="stat-card hours">
+        <div class="stat-icon">⏰</div>
+        <div class="stat-value" id="totalHours">—<span class="unit">ชม.</span></div>
+        <div class="stat-label">ชั่วโมงทำงานรวม</div>
+        <div class="stat-sub"   id="hoursSub">นับจากนาทีบริการ</div>
+      </div>
+    </div>
+
+    <!-- Job History -->
+    <div class="jobs-section">
+      <div class="jobs-header">
+        <div class="jobs-title">ประวัติการให้บริการ</div>
+        <span class="jobs-count" id="jobsCountBadge">0 รายการ</span>
+      </div>
+      <div class="job-row header-row">
+        <div>ลูกค้า / บริการ</div><div>วันที่</div><div>เวลา</div><div>ราคา</div><div>สถานะ</div>
+      </div>
+      <div id="jobsList"></div>
+    </div>
+
+  </div><!-- /main-wrap -->
+</div><!-- /app -->
+
+<div id="toastWrap"></div>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════
+const GAS_URL  = 'https://script.google.com/macros/s/AKfycbwwxxv62R12Svcf_p3QoG7QDYHCshw5WLypFFrqyzGNkKVmt1eQk0H2MYf3TZX5ZVcDAQ/exec';
+const SALT     = 'OneWaySpa@2025#Staff';
+const CACHE_KEY = 'spa_bookings_cache';
+const SESSION_KEY = 'spa_session';
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let currentUser  = null;   // { username, therapistName, passHash, avatar }
+let allBookings  = [];
+let activePeriod = 'today';
+
+// ══════════════════════════════════════════════
+// CRYPTO
+// ══════════════════════════════════════════════
+async function sha256(str) {
+  const salted = SALT + str + SALT;
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salted));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// ══════════════════════════════════════════════
+// GAS
+// ══════════════════════════════════════════════
+function authParams() {
+  if (!currentUser) return {};
+  return { therapistName: currentUser.therapistName, passwordHash: currentUser.passHash };
+}
+
+async function gasGet(params, withAuth = false) {
+  const merged = withAuth ? { ...authParams(), ...params } : params;
+  const qs  = new URLSearchParams({ ...merged, t: Date.now() }).toString();
+  const res = await fetch(`${GAS_URL}?${qs}`);
+  return res.json();
+}
+
+async function gasPost(body) {
+  await fetch(GAS_URL, {
+    method: 'POST', mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(body)
+  });
+}
+
+// ══════════════════════════════════════════════
+// CACHE
+// ══════════════════════════════════════════════
+function saveCache(bookings) {
+  try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ bookings, ts: Date.now() })); } catch(_) {}
+}
+
+function loadCache() {
+  try { return JSON.parse(sessionStorage.getItem(CACHE_KEY)); } catch(_) { return null; }
+}
+
+// ══════════════════════════════════════════════
+// AUTH UI HELPERS
+// ══════════════════════════════════════════════
+function switchTab(tab) {
+  clearMsg();
+  document.getElementById('formLogin').style.display    = tab === 'login'    ? 'block' : 'none';
+  document.getElementById('formRegister').style.display = tab === 'register' ? 'block' : 'none';
+  document.getElementById('formForgot').style.display   = tab === 'forgot'   ? 'block' : 'none';
+}
+
+function showMsg(msg, type = 'err') {
+  const el = document.getElementById('authMsg');
+  el.className = `auth-msg ${type}`;
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function clearMsg() {
+  document.getElementById('authMsg').style.display = 'none';
+}
+
+function btnLoading(id, txtId, msg) {
+  document.getElementById(id).disabled = true;
+  document.getElementById(txtId).innerHTML = `<span class="spinner-sm"></span> ${msg}`;
+}
+
+function btnReset(id, txtId, msg) {
+  document.getElementById(id).disabled = false;
+  document.getElementById(txtId).textContent = msg;
+}
+
+// ══════════════════════════════════════════════
+// REGISTER
+// ══════════════════════════════════════════════
+async function doRegister() {
+  clearMsg();
+  const username      = document.getElementById('regUser').value.trim();
+  const pass          = document.getElementById('regPass').value;
+  const pass2         = document.getElementById('regPass2').value;
+  const therapistName = document.getElementById('regTherapist').value.trim();
+
+  if (!username || username.length < 2) return showMsg('ชื่อผู้ใช้ต้องมีอย่างน้อย 2 ตัวอักษร');
+  if (!pass || pass.length < 6)         return showMsg('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+  if (pass !== pass2)                   return showMsg('รหัสผ่านทั้งสองช่องไม่ตรงกัน');
+  if (!therapistName)                   return showMsg('กรุณากรอกชื่อพนักงานใน Sheet');
+
+  btnLoading('btnRegister', 'registerBtnTxt', 'กำลังสมัคร...');
+  try {
+    const check = await gasGet({ action: 'getAccount', username });
+    if (check.account) return showMsg('ชื่อผู้ใช้นี้มีคนใช้แล้ว กรุณาเลือกชื่ออื่น');
+
+    const passHash = await sha256(pass);
+    await gasPost({ action: 'saveAccount', account: { username, passHash, therapistName, createdAt: new Date().toISOString() } });
+
+    await new Promise(r => setTimeout(r, 1200));
+    const verify = await gasGet({ action: 'getAccount', username });
+    if (verify.account) {
+      showMsg('✅ สมัครบัญชีสำเร็จ! กรุณาเข้าสู่ระบบ', 'ok');
+      setTimeout(() => {
+        switchTab('login');
+        document.getElementById('loginUser').value = username;
+        document.getElementById('loginPass').focus();
+      }, 1200);
+    } else {
+      showMsg('สมัครไม่สำเร็จ กรุณาลองใหม่');
+    }
+  } catch(_) {
+    showMsg('เชื่อมต่อ Server ไม่สำเร็จ กรุณาลองใหม่');
+  } finally {
+    btnReset('btnRegister', 'registerBtnTxt', 'สมัครบัญชี');
+  }
+}
+
+// ══════════════════════════════════════════════
+// RESET PASSWORD
+// ══════════════════════════════════════════════
+async function doResetPassword() {
+  clearMsg();
+  const username      = document.getElementById('forgotUser').value.trim();
+  const therapistName = document.getElementById('forgotTherapist').value.trim();
+  const pass          = document.getElementById('forgotPass').value;
+  const pass2         = document.getElementById('forgotPass2').value;
+
+  if (!username)                        return showMsg('กรุณากรอกชื่อผู้ใช้');
+  if (!therapistName)                   return showMsg('กรุณากรอกชื่อพนักงานใน Sheet');
+  if (!pass || pass.length < 6)         return showMsg('รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร');
+  if (pass !== pass2)                   return showMsg('รหัสผ่านทั้งสองช่องไม่ตรงกัน');
+
+  btnLoading('btnForgot', 'forgotBtnTxt', 'กำลังตรวจสอบ...');
+  try {
+    const data = await gasGet({ action: 'getAccount', username });
+    if (!data.account)                              return showMsg('ไม่พบบัญชีชื่อผู้ใช้นี้');
+    if (data.account.therapistName !== therapistName) return showMsg('ชื่อพนักงานใน Sheet ไม่ตรงกับที่ลงทะเบียนไว้');
+
+    const passHash = await sha256(pass);
+    await gasPost({ action: 'saveAccount', account: { username, passHash, therapistName: data.account.therapistName, createdAt: data.account.createdAt, _update: true } });
+
+    showMsg('✅ เปลี่ยนรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบ', 'ok');
+    ['forgotUser','forgotTherapist','forgotPass','forgotPass2'].forEach(id => document.getElementById(id).value = '');
+    setTimeout(() => { switchTab('login'); document.getElementById('loginUser').value = username; document.getElementById('loginPass').focus(); }, 1600);
+  } catch(_) {
+    showMsg('เชื่อมต่อ Server ไม่สำเร็จ กรุณาลองใหม่');
+  } finally {
+    btnReset('btnForgot', 'forgotBtnTxt', 'ตั้งรหัสผ่านใหม่');
+  }
+}
+
+// ══════════════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════════════
+async function doLogin() {
+  clearMsg();
+  const username = document.getElementById('loginUser').value.trim();
+  const pass     = document.getElementById('loginPass').value;
+
+  if (!username || !pass) return showMsg('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน');
+
+  btnLoading('btnLogin', 'loginBtnTxt', 'กำลังตรวจสอบ...');
+  try {
+    const data = await gasGet({ action: 'getAccount', username });
+    if (!data.account) return showMsg('ไม่พบบัญชีนี้ — กรุณาสมัครก่อน');
+
+    const passHash = await sha256(pass);
+    if (data.account.passHash !== passHash) {
+      showMsg('รหัสผ่านไม่ถูกต้อง');
+      document.getElementById('loginPass').value = '';
+      return;
+    }
+    enterApp({ username: data.account.username, therapistName: data.account.therapistName, passHash, avatar: avatarChar(data.account.therapistName || username) });
+  } catch(_) {
+    showMsg('เชื่อมต่อ Server ไม่สำเร็จ กรุณาลองใหม่');
+  } finally {
+    btnReset('btnLogin', 'loginBtnTxt', 'เข้าสู่ระบบ');
+  }
+}
+
+// ══════════════════════════════════════════════
+// APP LIFECYCLE
+// ══════════════════════════════════════════════
+function enterApp(user) {
+  currentUser = user;
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
+
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('app').style.display        = 'block';
+  document.getElementById('empAvatar').textContent       = user.avatar;
+  document.getElementById('empNameDisplay').textContent  = user.username;
+  document.getElementById('greetingText').textContent    = `สวัสดี, ${user.username} 👋`;
+  document.getElementById('greetingDate').textContent    = thaiDay();
+  document.getElementById('therapistName').textContent   = user.therapistName;
+
+  initPeriodPickers();
+  syncData();
+}
+
+function doLogout() {
+  currentUser  = null;
+  allBookings  = [];
+  activePeriod = 'today';
+  sessionStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(CACHE_KEY);
+  document.getElementById('app').style.display        = 'none';
+  document.getElementById('authScreen').style.display = 'flex';
+  switchTab('login');
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+}
+
+// ══════════════════════════════════════════════
+// SYNC
+// ══════════════════════════════════════════════
+async function syncData() {
+  const cache = loadCache();
+
+  // แสดง cache ก่อนทันที
+  if (cache?.bookings) {
+    allBookings = cache.bookings;
+    const ago = Math.round((Date.now() - cache.ts) / 1000);
+    const agoTxt = ago < 60 ? `${ago}s ago` : `${Math.round(ago/60)}m ago`;
+    document.getElementById('syncStatus').textContent = `cache (${agoTxt}) · ${allBookings.length} รายการ`;
+    renderStats();
+  }
+
+  document.getElementById('syncStatus').textContent = cache?.bookings ? '🔄 กำลังอัปเดต...' : 'กำลังโหลด...';
+  document.getElementById('syncIcon').textContent   = '⏳';
+
+  try {
+    const data = await gasGet({ action: 'getAll' }, true);
+
+    if (data.error === 'unauthorized') {
+      showToast('⚠️ Session หมดอายุ กรุณา login ใหม่', 'error');
+      doLogout();
+      return;
+    }
+
+    if (data.bookings && Array.isArray(data.bookings)) {
+      allBookings = data.bookings;
+      saveCache(allBookings);
+      document.getElementById('syncStatus').textContent = `อัปเดต ${new Date().toLocaleTimeString('th-TH')} · ${allBookings.length} รายการ`;
+      renderStats();
+      showToast('✅ ซิงค์ข้อมูลสำเร็จ');
+    } else if (!cache?.bookings) {
+      document.getElementById('syncStatus').textContent = 'ไม่พบข้อมูล';
+      showToast('ไม่พบข้อมูลใน Sheet', 'error');
+    }
+  } catch(_) {
+    document.getElementById('syncStatus').textContent = cache?.bookings ? `(offline) · ${allBookings.length} รายการ` : 'เชื่อมต่อไม่สำเร็จ';
+    if (!cache?.bookings) showToast('⚠️ เชื่อมต่อ GAS ไม่สำเร็จ', 'error');
+  }
+
+  document.getElementById('syncIcon').textContent = '🔄';
+}
+
+// ══════════════════════════════════════════════
+// PERIOD FILTER — tabbed (today / day / month / year)
+// ══════════════════════════════════════════════
+function initPeriodPickers() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('periodDayPicker').value   = today;
+  document.getElementById('periodMonthPicker').value = today.slice(0,7);
+  document.getElementById('periodYearPicker').value  = today.slice(0,4);
+}
+
+function setTab(tab) {
+  // update tab buttons
+  ['today','day','month','year'].forEach(t => {
+    document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1))
+      .classList.toggle('active', t === tab);
+  });
+  // show/hide input groups
+  document.getElementById('grpDay').classList.toggle('show',   tab === 'day');
+  document.getElementById('grpMonth').classList.toggle('show', tab === 'month');
+  document.getElementById('grpYear').classList.toggle('show',  tab === 'year');
+
+  if (tab === 'today') {
+    activePeriod = 'today';
+    renderStats();
+  } else if (tab === 'day') {
+    const v = document.getElementById('periodDayPicker').value;
+    if (v) { activePeriod = 'day:' + v; renderStats(); }
+  } else if (tab === 'month') {
+    const v = document.getElementById('periodMonthPicker').value;
+    if (v) { activePeriod = 'month:' + v; renderStats(); }
+  } else if (tab === 'year') {
+    const v = document.getElementById('periodYearPicker').value;
+    if (v && v.length === 4) { activePeriod = 'year:' + v; renderStats(); }
+  }
+}
+
+function onDayChange() {
+  const v = document.getElementById('periodDayPicker').value;
+  if (v) { activePeriod = 'day:' + v; renderStats(); }
+}
+
+function shiftDay(delta) {
+  const picker = document.getElementById('periodDayPicker');
+  const cur = picker.value || new Date().toISOString().split('T')[0];
+  const d = new Date(cur);
+  d.setDate(d.getDate() + delta);
+  const iso = d.toISOString().split('T')[0];
+  picker.value = iso;
+  activePeriod = 'day:' + iso;
+  renderStats();
+}
+
+function onMonthChange() {
+  const v = document.getElementById('periodMonthPicker').value;
+  if (v) { activePeriod = 'month:' + v; renderStats(); }
+}
+
+function onYearChange() {
+  const v = document.getElementById('periodYearPicker').value;
+  if (v && v.length === 4) { activePeriod = 'year:' + v; renderStats(); }
+}
+
+function clearPeriod() {
+  setTab('today');
+}
+
+function periodLabel() {
+  if (activePeriod === 'today') return 'วันนี้';
+  if (activePeriod.startsWith('day:')) {
+    const iso = activePeriod.slice(4);
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now()-86400000).toISOString().split('T')[0];
+    if (iso === today) return 'วันนี้';
+    if (iso === yesterday) return 'เมื่อวาน';
+    return thaiDate(iso);
+  }
+  if (activePeriod.startsWith('month:')) {
+    const [y,m] = activePeriod.slice(6).split('-');
+    return `${MONTHS[+m]} ${+y+543}`;
+  }
+  if (activePeriod.startsWith('year:')) return `ปี พ.ศ. ${+activePeriod.slice(5)+543}`;
+  return '';
+}
+
+// ── Get "previous period" ISO prefix for trend comparison ──
+function getPrevPeriodPrefix() {
+  if (activePeriod === 'today' || activePeriod.startsWith('day:')) {
+    const iso = activePeriod === 'today' ? new Date().toISOString().split('T')[0] : activePeriod.slice(4);
+    const prev = new Date(iso);
+    prev.setDate(prev.getDate() - 1);
+    return { type: 'day', val: prev.toISOString().split('T')[0] };
+  }
+  if (activePeriod.startsWith('month:')) {
+    const [y, m] = activePeriod.slice(6).split('-').map(Number);
+    const prev = new Date(y, m - 2, 1);
+    const py = prev.getFullYear();
+    const pm = String(prev.getMonth() + 1).padStart(2, '0');
+    return { type: 'month', val: `${py}-${pm}` };
+  }
+  if (activePeriod.startsWith('year:')) {
+    return { type: 'year', val: String(+activePeriod.slice(5) - 1) };
+  }
+  return null;
+}
+
+function getPrevBookings() {
+  const prev = getPrevPeriodPrefix();
+  if (!prev || !currentUser) return [];
+  return allBookings.filter(b => {
+    if (b.therapist !== currentUser.therapistName) return false;
+    if (b.status === 'cancel') return false;
+    if (prev.type === 'day')   return b.date === prev.val;
+    if (prev.type === 'month') return b.date?.startsWith(prev.val);
+    if (prev.type === 'year')  return b.date?.startsWith(prev.val);
+    return false;
+  });
+}
+
+function renderTrend(elId, cur, prev) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (prev === 0 && cur === 0) { el.style.display = 'none'; return; }
+  el.style.display = 'inline-flex';
+  if (prev === 0) {
+    el.className = 'kpi-trend up';
+    el.textContent = '▲ ใหม่';
+    return;
+  }
+  const pct = Math.round(((cur - prev) / prev) * 100);
+  if (pct > 0)      { el.className = 'kpi-trend up';   el.textContent = `▲ +${pct}% vs ก่อนหน้า`; }
+  else if (pct < 0) { el.className = 'kpi-trend down';  el.textContent = `▼ ${pct}% vs ก่อนหน้า`; }
+  else              { el.className = 'kpi-trend flat';  el.textContent = `– เท่าเดิม`; }
+}
+
+// ══════════════════════════════════════════════
+// STATS
+// ══════════════════════════════════════════════
+function getMyBookings(inclCancel = false) {
+  if (!currentUser) return [];
+  return allBookings.filter(b => {
+    if (b.therapist !== currentUser.therapistName)   return false;
+    if (!inclCancel && b.status === 'cancel')        return false;
+    const dateStr = activePeriod === 'today' ? todayStr() : null;
+    if (activePeriod === 'today')               return b.date === todayStr();
+    if (activePeriod.startsWith('day:'))        return b.date === activePeriod.slice(4);
+    if (activePeriod.startsWith('month:'))      return b.date?.startsWith(activePeriod.slice(6));
+    if (activePeriod.startsWith('year:'))       return b.date?.startsWith(activePeriod.slice(5));
+    return true;
+  });
+}
+
+function renderStats() {
+  const bk   = getMyBookings();
+  const all  = getMyBookings(true);
+  const done = bk.filter(b => b.status === 'done');
+  const act  = bk.filter(b => b.status === 'active');
+  const pl   = periodLabel();
+
+  // Prev period for trend
+  const prevBk   = getPrevBookings();
+  const prevDone = prevBk.filter(b => b.status === 'done');
+
+  setText('custCount',  bk.length,   'คน');
+  setText('custDone',   done.length, 'คน');
+  setText('custActive', act.length,  'คน');
+  document.getElementById('custSub').textContent = `${pl} (ไม่รวมยกเลิก)`;
+  renderTrend('trendCust', bk.length, prevBk.length);
+
+  const totalEarn = done.reduce((s,b) => s + (b.price||0), 0);
+  const prevEarn  = prevDone.reduce((s,b) => s + (b.price||0), 0);
+  setText('totalEarn', numFmt(totalEarn), 'บาท');
+  document.getElementById('earnSub').textContent = `${done.length} งานเสร็จสิ้น`;
+  renderTrend('trendEarn', totalEarn, prevEarn);
+
+  const svcMap = {};
+  bk.forEach(b => { if (b.service) svcMap[b.service] = (svcMap[b.service]||0) + 1; });
+  const top = Object.entries(svcMap).sort((a,b) => b[1]-a[1])[0];
+  document.getElementById('topService').textContent    = top ? (top[0].length>9 ? top[0].slice(0,8)+'…' : top[0]) : '—';
+  document.getElementById('topServiceSub').textContent = top ? `${top[1]} ครั้ง` : 'ยังไม่มีข้อมูล';
+
+  const totalMins = bk.reduce((s,b) => s + (parseInt(b.duration)||0), 0);
+  setText('totalHours', (totalMins/60).toFixed(1), 'ชม.');
+  document.getElementById('hoursSub').textContent = `${bk.length} งาน รวม ${totalMins} นาที`;
+
+  renderJobs(all);
+}
+
+function renderJobs(bookings) {
+  const sorted = [...bookings].sort((a,b) => a.date < b.date ? 1 : -1);
+  document.getElementById('jobsCountBadge').textContent = `${sorted.length} รายการ`;
+
+  const STATUS_CLASS = { done:'badge-done', active:'badge-active', cancel:'badge-cancel' };
+  const STATUS_LABEL = { done:'เสร็จแล้ว', active:'กำลังบริการ', cancel:'ยกเลิก' };
+
+  if (!sorted.length) {
+    document.getElementById('jobsList').innerHTML = `<div class="empty-state"><div class="emoji">🌿</div><p>ยังไม่มีประวัติในช่วงนี้</p></div>`;
+    return;
+  }
+
+  document.getElementById('jobsList').innerHTML = sorted.slice(0,30).map(b => `
+    <div class="job-row">
+      <div><div class="job-customer">${b.custName||'—'}</div><div class="job-service">${b.service||'—'}</div></div>
+      <div style="font-size:13px;color:var(--stone);">${thaiDate(b.date)}</div>
+      <div style="font-size:13px;">${b.startTime||'—'}–${b.endTime||'—'}<br><span style="font-size:11px;color:var(--stone);">${b.duration||0} น.</span></div>
+      <div style="font-size:14px;font-weight:700;color:var(--sage);">${b.price ? '฿'+numFmt(b.price) : '—'}</div>
+      <div><span class="badge ${STATUS_CLASS[b.status]||'badge-active'}">${STATUS_LABEL[b.status]||b.status}</span></div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════
+const MONTHS = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function numFmt(n)  { return Number(n).toLocaleString(); }
+function avatarChar(name) { return (name||'?').charAt(0).toUpperCase(); }
+
+function setText(id, value, unit) {
+  document.getElementById(id).innerHTML = `${value}<span class="unit">${unit}</span>`;
+}
+
+function thaiDate(iso) {
+  if (!iso) return '—';
+  const [y,m,d] = iso.split('-').map(Number);
+  if (!y||!m||!d) return iso;
+  return `${d} ${MONTHS[m]} ${y+543}`;
+}
+
+function thaiDay() {
+  const d = new Date();
+  const days = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  return `วัน${days[d.getDay()]}ที่ ${d.getDate()} ${MONTHS[d.getMonth()+1]} ${d.getFullYear()+543}`;
+}
+
+function showToast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  document.getElementById('toastWrap').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ══════════════════════════════════════════════
+// KEYBOARD
+// ══════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  if (document.getElementById('authScreen').style.display === 'none') return;
+  if (document.getElementById('formLogin').style.display    !== 'none') doLogin();
+  else if (document.getElementById('formForgot').style.display !== 'none') doResetPassword();
+  else doRegister();
+});
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+(function init() {
+  try {
+    const user = JSON.parse(sessionStorage.getItem(SESSION_KEY));
+    if (user?.username && user?.therapistName) enterApp(user);
+  } catch(_) {}
+})();
+
+</script>
+</body>
+</html>
