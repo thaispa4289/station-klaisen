@@ -734,9 +734,8 @@ async function doLogin() {
     }
     enterApp({ username: data.account.username, therapistName: data.account.therapistName, passHash, avatar: avatarChar(data.account.therapistName || username) });
 
-    // เสนอลงทะเบียน Fingerprint เฉพาะมือถือ/tablet (maxTouchPoints > 1) เท่านั้น
-    // PC ทุกเครื่อง (รวม Windows Hello) จะไม่แสดง popup
-    const isMobileOrTablet = navigator.maxTouchPoints > 1;
+    // เสนอลงทะเบียน Fingerprint เฉพาะมือถือ/tablet จริงๆ ตรวจจาก User Agent
+    const isMobileOrTablet = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     const credKey = 'webauthn_cred_' + username;
     if (isMobileOrTablet && !localStorage.getItem(credKey) && window.PublicKeyCredential) {
       const support = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(() => false);
