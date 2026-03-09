@@ -311,7 +311,7 @@ body { font-family: 'Sarabun', sans-serif; background: var(--cream); color: var(
         <div id="fpBtnWrap" style="display:none;">
           <div class="auth-divider"><span>หรือ</span></div>
           <button class="btn-auth-secondary" onclick="loginWithFingerprint()" style="display:flex;align-items:center;justify-content:center;gap:8px;">
-            <span style="font-size:18px;">🫆</span> เข้าสู่ระบบด้วย Fingerprint
+            <span style="font-size:18px;">🔑</span> เข้าสู่ระบบด้วย Fingerprint
           </button>
         </div>
         <div style="text-align:center;margin-top:16px;">
@@ -672,9 +672,10 @@ async function doLogin() {
     }
     enterApp({ username: data.account.username, therapistName: data.account.therapistName, passHash, avatar: avatarChar(data.account.therapistName || username) });
 
-    // เสนอลงทะเบียน Fingerprint ถ้ายังไม่เคยลงทะเบียนบนอุปกรณ์นี้
+    // เสนอลงทะเบียน Fingerprint เฉพาะมือถือ/tablet เท่านั้น
+    const isTouchDevice = navigator.maxTouchPoints > 0 || window.matchMedia('(pointer: coarse)').matches;
     const credKey = 'webauthn_cred_' + username;
-    if (!localStorage.getItem(credKey) && window.PublicKeyCredential) {
+    if (isTouchDevice && !localStorage.getItem(credKey) && window.PublicKeyCredential) {
       const support = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(() => false);
       if (support) {
         setTimeout(async () => {
