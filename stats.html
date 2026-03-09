@@ -307,6 +307,13 @@ body { font-family: 'Sarabun', sans-serif; background: var(--cream); color: var(
         <button class="btn-auth" id="btnLogin" onclick="doLogin()">
           <span id="loginBtnTxt">เข้าสู่ระบบ</span>
         </button>
+        <!-- ปุ่ม Fingerprint — แสดงเฉพาะอุปกรณ์ที่ลงทะเบียนไว้แล้ว -->
+        <div id="fpBtnWrap" style="display:none;">
+          <div class="auth-divider"><span>หรือ</span></div>
+          <button class="btn-auth-secondary" onclick="loginWithFingerprint()" style="display:flex;align-items:center;justify-content:center;gap:8px;">
+            <span style="font-size:18px;">🔑</span> เข้าสู่ระบบด้วย Fingerprint
+          </button>
+        </div>
         <div style="text-align:center;margin-top:16px;">
           <button class="btn-link" onclick="switchTab('forgot')">ลืมรหัสผ่าน?</button>
         </div>
@@ -439,7 +446,7 @@ body { font-family: 'Sarabun', sans-serif; background: var(--cream); color: var(
       </div>
       <div class="stat-card earnings">
         <div class="stat-icon">🏆</div>
-        <div class="stat-value" id="topService" style="font-size:20px;">—</div>
+        <div class="stat-value" id="topService" style="font-size:16px;word-break:break-word;line-height:1.3;">—</div>
         <div class="stat-label">บริการยอดนิยม</div>
         <div class="stat-sub"   id="topServiceSub">อันดับ 1 ช่วงนี้</div>
       </div>
@@ -664,8 +671,94 @@ async function doLogin() {
       return;
     }
     enterApp({ username: data.account.username, therapistName: data.account.therapistName, passHash, avatar: avatarChar(data.account.therapistName || username) });
+
+    // เสนอลงทะเบียน Fingerprint ถ้ายังไม่เคยลงทะเบียนบนอุปกรณ์นี้
+    const credKey = 'webauthn_cred_' + username;
+    if (!localStorage.getItem(credKey) && window.PublicKeyCredential) {
+      const support = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(() => false);
+      if (support) {
+        setTimeout(async () => {
+          const ok = confirm('ต้องการเปิดใช้ Fingerprint / Face ID สำหรับบัญชีนี้ไหม?');
+          if (ok) await registerFingerprint(username);
+        }, 800);
+      }
+    }
   } catch(_) {
     showMsg('เชื่อมต่อ Server ไม่สำเร็จ กรุณาลองใหม่');
+  } finally {
+    btnReset('btnLogin', 'loginBtnTxt', 'เข้าสู่ระบบ');
+  }
+}
+
+// ══════════════════════════════════════════════
+// WEBAUTHN — Fingerprint / Face ID
+// ══════════════════════════════════════════════
+function _fpBuf(str) { return Uint8Array.from(str, c => c.charCodeAt(0)); }
+function _fpB64(buf) { return btoa(String.fromCharCode(...new Uint8Array(buf))); }
+function _fpUnb64(str) { return Uint8Array.from(atob(str), c => c.charCodeAt(0)); }
+
+async function registerFingerprint(username) {
+  try {
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const cred = await navigator.credentials.create({
+      publicKey: {
+        challenge,
+        rp: { name: 'Station Klaisen', id: location.hostname },
+        user: { id: _fpBuf(username), name: username, displayName: username },
+        pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+        authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+        timeout: 60000,
+      }
+    });
+    localStorage.setItem('webauthn_cred_' + username, JSON.stringify({
+      credentialId: _fpB64(cred.rawId),
+      username,
+    }));
+    // prefill username สำหรับครั้งถัดไป
+    localStorage.setItem('webauthn_last_user', username);
+    showToast('✅ ลงทะเบียน Fingerprint สำเร็จ');
+  } catch(e) {
+    if (e.name !== 'NotAllowedError') showToast('ลงทะเบียน Fingerprint ไม่สำเร็จ: ' + e.message);
+  }
+}
+
+async function loginWithFingerprint() {
+  const username = document.getElementById('loginUser').value.trim()
+                || localStorage.getItem('webauthn_last_user') || '';
+  if (!username) { showMsg('กรุณากรอกชื่อผู้ใช้ก่อน'); return; }
+
+  const stored = JSON.parse(localStorage.getItem('webauthn_cred_' + username) || 'null');
+  if (!stored) { showMsg('ยังไม่ได้ลงทะเบียน Fingerprint สำหรับบัญชีนี้'); return; }
+
+  try {
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    await navigator.credentials.get({
+      publicKey: {
+        challenge,
+        allowCredentials: [{ type: 'public-key', id: _fpUnb64(stored.credentialId) }],
+        userVerification: 'required',
+        timeout: 60000,
+      }
+    });
+    // ผ่าน biometric → ดึง account จาก GAS แล้ว enterApp
+    btnLoading('btnLogin', 'loginBtnTxt', 'กำลังเข้าสู่ระบบ...');
+    const data = await gasGet({ action: 'getAccount', username });
+    if (!data.account) { showMsg('ไม่พบบัญชีนี้'); return; }
+    enterApp({
+      username:      data.account.username,
+      therapistName: data.account.therapistName,
+      passHash:      data.account.passHash,
+      avatar:        avatarChar(data.account.therapistName || username)
+    });
+    showToast('🔑 เข้าสู่ระบบด้วย Fingerprint สำเร็จ');
+  } catch(e) {
+    if (e.name === 'NotAllowedError') {
+      showMsg('ยกเลิกการสแกน');
+    } else {
+      localStorage.removeItem('webauthn_cred_' + username);
+      document.getElementById('fpBtnWrap').style.display = 'none';
+      showMsg('Fingerprint ใช้ไม่ได้ กรุณา login ด้วยรหัสผ่านแทน');
+    }
   } finally {
     btnReset('btnLogin', 'loginBtnTxt', 'เข้าสู่ระบบ');
   }
@@ -934,7 +1027,7 @@ function renderStats() {
   const svcMap = {};
   bk.forEach(b => { if (b.service) svcMap[b.service] = (svcMap[b.service]||0) + 1; });
   const top = Object.entries(svcMap).sort((a,b) => b[1]-a[1])[0];
-  document.getElementById('topService').textContent    = top ? (top[0].length>9 ? top[0].slice(0,8)+'…' : top[0]) : '—';
+  document.getElementById('topService').textContent    = top ? top[0] : '—';
   document.getElementById('topServiceSub').textContent = top ? `${top[1]} ครั้ง` : 'ยังไม่มีข้อมูล';
 
   const totalMins = bk.reduce((s,b) => s + (parseInt(b.duration)||0), 0);
@@ -1014,11 +1107,28 @@ document.addEventListener('keydown', e => {
 // ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
-(function init() {
+(async function init() {
   try {
     const user = JSON.parse(sessionStorage.getItem(SESSION_KEY));
-    if (user?.username && user?.therapistName) enterApp(user);
+    if (user?.username && user?.therapistName) { enterApp(user); return; }
   } catch(_) {}
+
+  // prefill username จากครั้งล่าสุด
+  const lastUser = localStorage.getItem('webauthn_last_user') || '';
+  if (lastUser) document.getElementById('loginUser').value = lastUser;
+
+  // แสดงปุ่ม Fingerprint ถ้าอุปกรณ์นี้ลงทะเบียนไว้แล้ว
+  if (lastUser && localStorage.getItem('webauthn_cred_' + lastUser) && window.PublicKeyCredential) {
+    const support = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(() => false);
+    if (support) document.getElementById('fpBtnWrap').style.display = 'block';
+  }
+
+  // อัปเดตปุ่ม Fingerprint เมื่อพิมพ์ username
+  document.getElementById('loginUser').addEventListener('input', async function() {
+    const u = this.value.trim();
+    const hasCred = u && !!localStorage.getItem('webauthn_cred_' + u);
+    document.getElementById('fpBtnWrap').style.display = hasCred ? 'block' : 'none';
+  });
 })();
 
 </script>
