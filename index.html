@@ -528,6 +528,16 @@
     .list-table-wrapper { overflow-x: auto; }
     /* Top customers grid - 2 col on tablet */
     #topCustomersGrid { grid-template-columns: repeat(2, 1fr) !important; }
+    /* Settings — service add form: stack to 2 rows */
+    .service-add-grid {
+      grid-template-columns: 1fr 1fr !important;
+    }
+    .service-add-grid input:first-child { grid-column: span 2 !important; }
+    /* Settings — service row: wrap ได้ */
+    .service-row { flex-wrap: wrap; }
+    .service-row-name { min-width: unset; width: 100%; }
+    /* Settings — username row */
+    #newUsername { min-width: 0; }
   }
 
   /* =============================================
@@ -976,11 +986,11 @@
                 <div class="grid grid-cols-2 gap-4">
                   <div>
                     <label class="form-label">ชื่อลูกค้า *</label>
-                    <input type="text" id="custName" class="form-input" placeholder="ชื่อ-นามสกุล">
+                    <input type="text" id="custName" class="form-input" placeholder="">
                   </div>
                   <div>
                     <label class="form-label">เบอร์โทรศัพท์</label>
-                    <input type="tel" id="custPhone" class="form-input" placeholder="08x-xxx-xxxx">
+                    <input type="tel" id="custPhone" class="form-input" placeholder="">
                   </div>
                 </div>
               </div>
@@ -1298,7 +1308,7 @@
             <!-- Services -->
             <div class="card p-6">
               <h3 class="font-display text-lg mb-4">จัดการบริการ</h3>
-              <div class="grid service-add-grid gap-2 mb-1" style="grid-template-columns:1fr auto auto auto auto;">
+              <div class="grid service-add-grid gap-2 mb-1" style="grid-template-columns:minmax(160px,1fr) auto auto auto auto;">
                 <input type="text" id="newServiceName" class="form-input" placeholder="ชื่อบริการ">
                 <input type="number" id="newServicePrice" class="form-input" placeholder="ราคา (฿)" min="0" style="width:100px;">
                 <div style="display:flex;align-items:center;gap:4px;">
