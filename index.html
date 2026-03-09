@@ -1663,16 +1663,19 @@ async function loadFromGAS() {
     // โหลด settings — sanitize ค่าก่อน merge เพื่อป้องกัน Sheet ส่งค่าผิดรูปแบบ
     if (data.settings) {
       const gs = data.settings;
-      const gasUrl      = state.settings.gasUrl;
-      // ใช้ passwordHash จาก local เสมอ — ไม่รับ password plain text จาก GAS
-      const passwordHash = state.settings.passwordHash;
+      const gasUrl = state.settings.gasUrl;
+      // รับ passwordHash จาก GAS ถ้ามี (เพื่อ sync ข้ามอุปกรณ์)
+      // ถ้า GAS ไม่มี passwordHash ให้ใช้ local แทน
+      const passwordHash = (gs.passwordHash && String(gs.passwordHash).length === 64)
+        ? gs.passwordHash
+        : state.settings.passwordHash;
       // Sanitize เวลาเปิด/ปิดจาก Sheet (อาจเป็น null, decimal, หรือรูปแบบแปลก)
       gs.openTime  = sanitizeTime(gs.openTime,  state.settings.openTime  || '09:00');
       gs.closeTime = sanitizeTime(gs.closeTime, state.settings.closeTime || '21:00');
       // bedCount ต้องเป็น number
       if (gs.bedCount) gs.bedCount = parseInt(gs.bedCount) || state.settings.bedCount || 3;
       // shopName ต้องไม่ว่าง
-      if (!gs.shopName || !String(gs.shopName).trim()) gs.shopName = state.settings.shopName || 'Thai Spa';
+      if (!gs.shopName || !String(gs.shopName).trim()) gs.shopName = state.settings.shopName || '';
       // therapists/services ต้องเป็น array
       if (!Array.isArray(gs.therapists)) gs.therapists = state.settings.therapists;
       if (!Array.isArray(gs.services))   gs.services   = state.settings.services;
@@ -2882,10 +2885,11 @@ async function changePassword() {
   if (n !== c) { showToast('รหัสผ่านไม่ตรงกัน', 'error'); return; }
   state.settings.passwordHash = await Auth.setPassword(n);
   saveState();
+  saveSettingsToGAS();
   document.getElementById('oldPass').value = '';
   document.getElementById('newPass').value = '';
   document.getElementById('confirmPass').value = '';
-  showToast('เปลี่ยนรหัสผ่านเรียบร้อย', 'success');
+  showToast('เปลี่ยนรหัสผ่านเรียบร้อย และ sync ไป Google Sheet แล้ว', 'success');
 }
 
 // ── dirty indicator: แสดงเมื่อมีการแก้ % ค่าแรงที่ยังไม่ได้บันทึก ────────────
