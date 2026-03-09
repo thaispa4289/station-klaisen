@@ -672,10 +672,9 @@ async function doLogin() {
     }
     enterApp({ username: data.account.username, therapistName: data.account.therapistName, passHash, avatar: avatarChar(data.account.therapistName || username) });
 
-    // เสนอลงทะเบียน Fingerprint เฉพาะมือถือ/tablet เท่านั้น
-    const isTouchDevice = navigator.maxTouchPoints > 0 || window.matchMedia('(pointer: coarse)').matches;
+    // เสนอลงทะเบียน Fingerprint เฉพาะอุปกรณ์ที่มี biometric จริงเท่านั้น
     const credKey = 'webauthn_cred_' + username;
-    if (isTouchDevice && !localStorage.getItem(credKey) && window.PublicKeyCredential) {
+    if (!localStorage.getItem(credKey) && window.PublicKeyCredential) {
       const support = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(() => false);
       if (support) {
         setTimeout(async () => {
