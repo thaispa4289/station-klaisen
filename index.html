@@ -551,6 +551,42 @@
   }
 
   /* =============================================
+     iPad mini / small tablet (641–768px)
+     ============================================= */
+  @media (min-width: 641px) and (max-width: 768px) {
+    /* service add form: 2 cols, ชื่อบริการเต็มแถว */
+    .service-add-grid {
+      grid-template-columns: 1fr 1fr !important;
+    }
+    .service-add-grid input:first-child { grid-column: span 2 !important; }
+
+    /* service row: wrap + ชื่อเต็มแถว */
+    .service-row { flex-wrap: wrap; gap: 6px; }
+    .service-row-name { min-width: unset !important; width: 100%; }
+
+    /* password/username grid: 1 col */
+    .password-grid { grid-template-columns: 1fr !important; }
+
+    /* shop info grid: 1 col */
+    .card .grid.grid-cols-2 { grid-template-columns: 1fr !important; }
+
+    /* booking 3-col: 2 col */
+    .booking-row-3col { grid-template-columns: 1fr 1fr !important; }
+
+    /* settings grid: 1 col */
+    .settings-grid { grid-template-columns: 1fr !important; }
+
+    /* username change row */
+    #newUsername { min-width: 0; width: 100%; }
+    .card .flex.gap-2 { flex-wrap: wrap; }
+    .card .flex.gap-2 button { white-space: nowrap; }
+
+    /* card padding */
+    .card.p-8 { padding: 20px !important; }
+    .card.p-6 { padding: 16px !important; }
+  }
+
+  /* =============================================
      MOBILE SMALL (≤640px) — single column
      ============================================= */
   @media (max-width: 640px) {
@@ -1437,19 +1473,14 @@ const Auth = (() => {
 let state = {
   pendingPage: null,
   settings: {
-    shopName: 'Thai Spa',
+    shopName: '',
     openTime: '09:00',
     closeTime: '21:00',
-    bedCount: 3,
-    therapists: ['คุณนอม', 'คุณดำ'],
-    services: [
-      { name: 'นวดแผนไทย', price: 300, wageAmount: 150 },
-      { name: 'นวดน้ำมัน',  price: 400, wageAmount: 200 },
-      { name: 'นวดฝ่าเท้า', price: 250, wageAmount: 125 },
-      { name: 'อโรมา',      price: 500, wageAmount: 250 },
-    ],
+    bedCount: 1,
+    therapists: [],
+    services: [],
     gasUrl: '',
-    passwordHash: '',   // เก็บ SHA-256 hash เท่านั้น ไม่มี plain text password
+    passwordHash: '',
   },
   bookings: [],
   selectedTime: null,
@@ -3268,19 +3299,6 @@ function showToast(msg, type = 'success') {
 // =============================================
 (async () => {
   await loadState();
-
-  // Demo data
-  if (state.bookings.length === 0) {
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now()-86400000).toISOString().split('T')[0];
-    state.bookings = [
-      { id:'1', custName:'คุณสมใจ', custPhone:'089-111-2222', date:today, service:'นวดแผนไทย', duration:60, therapist:'คุณนอม', bed:'เตียงที่ 1', startTime:'10:00', endTime:'11:00', price:300, status:'active', createdAt:new Date().toISOString() },
-      { id:'2', custName:'คุณวิชัย', custPhone:'086-333-4444', date:today, service:'นวดน้ำมัน', duration:90, therapist:'คุณดำ', bed:'เตียงที่ 2', startTime:'13:00', endTime:'14:30', price:400, status:'done', createdAt:new Date().toISOString() },
-      { id:'3', custName:'คุณนภา', custPhone:'092-555-6666', date:yesterday, service:'นวดฝ่าเท้า', duration:60, therapist:'คุณนอม', bed:'เตียงที่ 3', startTime:'15:00', endTime:'16:00', price:250, status:'done', createdAt:new Date(Date.now()-86400000).toISOString() },
-      { id:'4', custName:'คุณประมวล', custPhone:'081-777-8888', date:yesterday, service:'อโรมา', duration:120, therapist:'คุณดำ', bed:'เตียงที่ 1', startTime:'09:00', endTime:'11:00', price:500, status:'cancel', createdAt:new Date(Date.now()-86400000).toISOString() },
-    ];
-    saveState();
-  }
 
   initApp();
 })();
