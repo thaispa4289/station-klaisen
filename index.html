@@ -1502,9 +1502,10 @@ async function loadState() {
   const b = localStorage.getItem('thaispa_bookings');
   if (s) {
     const parsed = JSON.parse(s);
-    const timeRe = /^\d{2}:\d{2}$/;
-    if (!timeRe.test(parsed.openTime))  parsed.openTime  = '09:00';
-    if (!timeRe.test(parsed.closeTime)) parsed.closeTime = '21:00';
+
+    // sanitize เวลาเปิด/ปิด — รองรับทั้ง HH:MM, decimal fraction, และ Date object
+    parsed.openTime  = sanitizeTime(parsed.openTime,  '09:00');
+    parsed.closeTime = sanitizeTime(parsed.closeTime, '21:00');
 
     // Migration: ถ้าเจอ plain text password เก่า ให้แปลงเป็น hash แล้วลบทิ้ง
     if (parsed.password && !parsed.passwordHash) {
