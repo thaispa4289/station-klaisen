@@ -2516,6 +2516,7 @@ function renderReport() {
   const thisYear  = todayStr.slice(0,4);
 
   const active = state.bookings.filter(b => b.status !== 'cancel');
+  const done   = state.bookings.filter(b => b.status === 'done');
 
   // Determine filter range based on reportMode
   let focusDate  = todayStr;   // for KPI row 1
@@ -2571,13 +2572,17 @@ function renderReport() {
     chartTitle = `รายได้รายเดือน (ปี ${+y+543})`;
   }
 
-  // Calculate KPI values
+  // Calculate KPI values — ใช้ done เท่านั้น (status === 'done')
   let rev1, rev2, rev3, cus1, cus2, cus3;
+  let wageBookings1, wageBookings2, wageBookings3;
 
   if (reportMode === 'today' || reportMode === 'thisMonth' || reportMode === 'thisYear' ) {
-    rev1 = active.filter(b => b.date === focusDate).reduce((s,b) => s+b.price, 0);
-    rev2 = active.filter(b => b.date.startsWith(focusMonth)).reduce((s,b) => s+b.price, 0);
-    rev3 = active.filter(b => b.date.startsWith(focusYear)).reduce((s,b) => s+b.price, 0);
+    wageBookings1 = done.filter(b => b.date === focusDate);
+    wageBookings2 = done.filter(b => b.date.startsWith(focusMonth));
+    wageBookings3 = done.filter(b => b.date.startsWith(focusYear));
+    rev1 = wageBookings1.reduce((s,b) => s+b.price, 0);
+    rev2 = wageBookings2.reduce((s,b) => s+b.price, 0);
+    rev3 = wageBookings3.reduce((s,b) => s+b.price, 0);
     cus1 = active.filter(b => b.date === focusDate).length;
     cus2 = active.filter(b => b.date.startsWith(focusMonth)).length;
     cus3 = active.filter(b => b.date.startsWith(focusYear)).length;
@@ -2585,22 +2590,26 @@ function renderReport() {
     const ym = reportMode.slice(6);
     const [y,m] = ym.split('-').map(Number);
     const prevMonth = m === 1 ? `${y-1}-12` : `${y}-${String(m-1).padStart(2,'0')}`;
-    rev1 = active.filter(b => b.date.startsWith(ym)).reduce((s,b) => s+b.price, 0);
-    rev2 = active.filter(b => b.date.startsWith(prevMonth)).reduce((s,b) => s+b.price, 0);
-    rev3 = active.filter(b => b.date.startsWith(String(y))).reduce((s,b) => s+b.price, 0);
+    wageBookings1 = done.filter(b => b.date.startsWith(ym));
+    wageBookings2 = done.filter(b => b.date.startsWith(prevMonth));
+    wageBookings3 = done.filter(b => b.date.startsWith(String(y)));
+    rev1 = wageBookings1.reduce((s,b) => s+b.price, 0);
+    rev2 = wageBookings2.reduce((s,b) => s+b.price, 0);
+    rev3 = wageBookings3.reduce((s,b) => s+b.price, 0);
     cus1 = active.filter(b => b.date.startsWith(ym)).length;
     cus2 = active.filter(b => b.date.startsWith(prevMonth)).length;
     cus3 = active.filter(b => b.date.startsWith(String(y))).length;
   } else if (reportMode.startsWith('year:')) {
     const y = reportMode.slice(5);
-    const h1 = active.filter(b => b.date.startsWith(y) && +b.date.slice(5,7) <= 6);
-    const h2 = active.filter(b => b.date.startsWith(y) && +b.date.slice(5,7) >= 7);
-    rev1 = active.filter(b => b.date.startsWith(y)).reduce((s,b) => s+b.price, 0);
-    rev2 = h1.reduce((s,b) => s+b.price, 0);
-    rev3 = h2.reduce((s,b) => s+b.price, 0);
+    wageBookings1 = done.filter(b => b.date.startsWith(y));
+    wageBookings2 = done.filter(b => b.date.startsWith(y) && +b.date.slice(5,7) <= 6);
+    wageBookings3 = done.filter(b => b.date.startsWith(y) && +b.date.slice(5,7) >= 7);
+    rev1 = wageBookings1.reduce((s,b) => s+b.price, 0);
+    rev2 = wageBookings2.reduce((s,b) => s+b.price, 0);
+    rev3 = wageBookings3.reduce((s,b) => s+b.price, 0);
     cus1 = active.filter(b => b.date.startsWith(y)).length;
-    cus2 = h1.length;
-    cus3 = h2.length;
+    cus2 = active.filter(b => b.date.startsWith(y) && +b.date.slice(5,7) <= 6).length;
+    cus3 = active.filter(b => b.date.startsWith(y) && +b.date.slice(5,7) >= 7).length;
   }
 
   // Update labels
@@ -2615,26 +2624,6 @@ function renderReport() {
   const svcTitle = document.getElementById('serviceReportTitle');
   if (svcTitle) svcTitle.textContent = 'สรุปรายได้แยกตามบริการ';
 
-  document.getElementById('kpi-today-rev').textContent = '฿' + (rev1||0).toLocaleString();
-  // คำนวณค่าแรงจากกลุ่ม booking เดียวกับ rev1/rev2/rev3
-  let wageBookings1, wageBookings2, wageBookings3;
-  if (reportMode === 'today' || reportMode === 'thisMonth' || reportMode === 'thisYear' ) {
-    wageBookings1 = active.filter(b => b.date === focusDate);
-    wageBookings2 = active.filter(b => b.date.startsWith(focusMonth));
-    wageBookings3 = active.filter(b => b.date.startsWith(focusYear));
-  } else if (reportMode.startsWith('month:')) {
-    const ym = reportMode.slice(6);
-    const [y,m] = ym.split('-').map(Number);
-    const prevMonth = m === 1 ? `${y-1}-12` : `${y}-${String(m-1).padStart(2,'0')}`;
-    wageBookings1 = active.filter(b => b.date.startsWith(ym));
-    wageBookings2 = active.filter(b => b.date.startsWith(prevMonth));
-    wageBookings3 = active.filter(b => b.date.startsWith(String(y)));
-  } else if (reportMode.startsWith('year:')) {
-    const y = reportMode.slice(5);
-    wageBookings1 = active.filter(b => b.date.startsWith(y));
-    wageBookings2 = active.filter(b => b.date.startsWith(y) && +b.date.slice(5,7) <= 6);
-    wageBookings3 = active.filter(b => b.date.startsWith(y) && +b.date.slice(5,7) >= 7);
-  }
   const net1 = (rev1||0) - calcWageForBookings(wageBookings1 || []);
   const net2 = (rev2||0) - calcWageForBookings(wageBookings2 || []);
   const net3 = (rev3||0) - calcWageForBookings(wageBookings3 || []);
