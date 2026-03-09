@@ -489,6 +489,7 @@ const SESSION_KEY = 'spa_session';
 // ══════════════════════════════════════════════
 let currentUser  = null;   // { username, therapistName, passHash, avatar }
 let allBookings  = [];
+let allServices  = [];     // services จาก settings — ใช้คำนวณค่าแรง
 let activePeriod = 'today';
 
 // ══════════════════════════════════════════════
@@ -731,6 +732,7 @@ async function syncData() {
 
     if (data.bookings && Array.isArray(data.bookings)) {
       allBookings = data.bookings;
+      if (data.settings?.services) allServices = data.settings.services;
       saveCache(allBookings);
       document.getElementById('syncStatus').textContent = `อัปเดต ${new Date().toLocaleTimeString('th-TH')} · ${allBookings.length} รายการ`;
       renderStats();
@@ -898,6 +900,14 @@ function getMyBookings(inclCancel = false) {
   });
 }
 
+// คำนวณค่าแรงพนักงานจาก wageAmount ของบริการ
+function calcWage(booking) {
+  const svc = allServices.find(s => s.name === booking.service);
+  const wage = svc?.wageAmount ?? Math.round((booking.price || 0) * 0.5);
+  const minDur = svc?.minDuration ?? 60;
+  return wage * (parseInt(booking.duration) || minDur) / minDur;
+}
+
 function renderStats() {
   const bk   = getMyBookings();
   const all  = getMyBookings(true);
@@ -915,9 +925,9 @@ function renderStats() {
   document.getElementById('custSub').textContent = `${pl} (ไม่รวมยกเลิก)`;
   renderTrend('trendCust', bk.length, prevBk.length);
 
-  const totalEarn = done.reduce((s,b) => s + (b.price||0), 0);
-  const prevEarn  = prevDone.reduce((s,b) => s + (b.price||0), 0);
-  setText('totalEarn', numFmt(totalEarn), 'บาท');
+  const totalEarn = done.reduce((s,b) => s + calcWage(b), 0);
+  const prevEarn  = prevDone.reduce((s,b) => s + calcWage(b), 0);
+  setText('totalEarn', numFmt(Math.round(totalEarn)), 'บาท');
   document.getElementById('earnSub').textContent = `${done.length} งานเสร็จสิ้น`;
   renderTrend('trendEarn', totalEarn, prevEarn);
 
