@@ -1074,16 +1074,9 @@
                 </div>
                 <div class="booking-row-3col">
                   <div>
-                    <label class="form-label">ระยะเวลา</label>
+                    <label class="form-label">ระยะเวลา *</label>
                     <select id="duration" class="form-input" onchange="updateEndTime()">
                       <option value="">-- เลือก --</option>
-                      <option value="60">60 นาที</option>
-                      <option value="90">90 นาที</option>
-                      <option value="120">120 นาที</option>
-                      <option value="150">150 นาที</option>
-                      <option value="180">180 นาที</option>
-                      <option value="210">210 นาที</option>
-                      <option value="240">240 นาที</option>
                     </select>
                   </div>
                   <div>
@@ -3323,7 +3316,7 @@ const I18N = {
     pageBookingTitle: 'จองคิวนวด', pageBookingSubtitle: 'กรอกข้อมูลเพื่อทำการจองคิว',
     step1: 'ข้อมูลลูกค้า', step2: 'เลือกวันที่และบริการ', step3: 'เลือกระยะเวลา / พนักงาน / เตียง', step4: 'เลือกเวลาเริ่มต้น',
     labelName: 'ชื่อลูกค้า *', labelPhone: 'เบอร์โทรศัพท์', labelDate: 'วันที่ *', labelService: 'บริการ *',
-    labelDuration: 'ระยะเวลา (นาที) *', labelTherapist: 'พนักงาน *', labelBed: 'เตียง *',
+    labelDuration: 'ระยะเวลา *', labelTherapist: 'พนักงาน *', labelBed: 'เตียง *',
     selectService: '-- เลือกบริการ --', selectDuration: '-- เลือก --', selectTherapist: '-- เลือกพนักงาน --', selectBed: '-- เลือกเตียง --',
     slotFree: 'ว่าง', slotBusy: 'ไม่ว่าง', endTime: 'เวลาจบ: ',
     labelPrice: 'ราคารวม', priceNote: '(ราคา/ชม. × ระยะเวลา)',
@@ -3333,7 +3326,7 @@ const I18N = {
     pageBookingTitle: 'Book a Massage', pageBookingSubtitle: 'Fill in the details to make a booking',
     step1: 'Customer Info', step2: 'Date & Service', step3: 'Duration / Therapist / Bed', step4: 'Select Start Time',
     labelName: 'Customer Name *', labelPhone: 'Phone Number', labelDate: 'Date *', labelService: 'Service *',
-    labelDuration: 'Duration (min) *', labelTherapist: 'Therapist *', labelBed: 'Bed *',
+    labelDuration: 'Duration *', labelTherapist: 'Therapist *', labelBed: 'Bed *',
     selectService: '-- Select Service --', selectDuration: '-- Select --', selectTherapist: '-- Select Therapist --', selectBed: '-- Select Bed --',
     slotFree: 'Free', slotBusy: 'Busy', endTime: 'End Time: ',
     labelPrice: 'Total Price', priceNote: '(Price/hr × Duration)',
@@ -3389,12 +3382,6 @@ function applyLang() {
   if (thrSel?.options[0]) thrSel.options[0].text = t.selectTherapist;
   const bedSel = document.getElementById('bed');
   if (bedSel?.options[0]) bedSel.options[0].text = t.selectBed;
-
-  // Duration options (นาที/min)
-  const minLabel = isEN ? ' min' : ' นาที';
-  if (durSel) [60,90,120,150,180,210,240].forEach((v, i) => {
-    if (durSel.options[i+1]) durSel.options[i+1].text = v + minLabel;
-  });
 
   // Slot legend
   const swatches = qa('.slot-legend-item span');
