@@ -934,7 +934,7 @@
   <div class="mobile-header" id="mobileHeader" style="display:none;">
     <img src="https://thaispa4289.github.io/station-klaisen/Logostation-klaisen.png" style="width:32px;height:32px;object-fit:contain;border-radius:50%;">
     <span class="font-display text-white text-lg" id="mobileTitle">Station Klaisen</span>
-    <div style="width:22px;"></div>
+    <button onclick="toggleLang()" id="langBtnMobile" style="background:rgba(200,169,110,0.15);border:1px solid rgba(200,169,110,0.3);color:var(--gold);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Sarabun',sans-serif;">TH</button>
   </div>
 
   <!-- Bottom Nav Bar (mobile only) -->
@@ -990,7 +990,8 @@
       </nav>
 
       <div style="padding: 16px 24px; border-top: 1px solid rgba(200,169,110,0.15);" id="logoutArea" style="display:none;">
-        <button onclick="doLogout()" class="btn-outline w-full" style="font-size:12px; color:rgba(250,247,242,0.5); border-color:rgba(200,169,110,0.2);">🚪 ออกจากระบบ</button>
+        <button onclick="doLogout()" class="btn-outline w-full" style="font-size:12px; color:rgba(250,247,242,0.5); border-color:rgba(200,169,110,0.2);" id="btnLogout">🚪 ออกจากระบบ</button>
+        <button onclick="toggleLang()" id="langBtnSidebar" style="margin-top:8px;width:100%;background:rgba(200,169,110,0.1);border:1px solid rgba(200,169,110,0.25);color:var(--gold);border-radius:8px;padding:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Sarabun',sans-serif;">🌐 TH / EN</button>
       </div>
 
 
@@ -3313,6 +3314,108 @@ function showToast(msg, type = 'success') {
 
   initApp();
 })();
+
+// ══════════════════════════════════════════════
+// 🌐 i18n — ระบบสลับภาษา TH / EN
+// ══════════════════════════════════════════════
+const I18N = {
+  th: {
+    pageBookingTitle: 'จองคิวนวด', pageBookingSubtitle: 'กรอกข้อมูลเพื่อทำการจองคิว',
+    step1: 'ข้อมูลลูกค้า', step2: 'เลือกวันที่และบริการ', step3: 'เลือกระยะเวลา / พนักงาน / เตียง', step4: 'เลือกเวลาเริ่มต้น',
+    labelName: 'ชื่อลูกค้า *', labelPhone: 'เบอร์โทรศัพท์', labelDate: 'วันที่ *', labelService: 'บริการ *',
+    labelDuration: 'ระยะเวลา (นาที) *', labelTherapist: 'พนักงาน *', labelBed: 'เตียง *',
+    selectService: '-- เลือกบริการ --', selectDuration: '-- เลือก --', selectTherapist: '-- เลือกพนักงาน --', selectBed: '-- เลือกเตียง --',
+    slotFree: 'ว่าง', slotBusy: 'ไม่ว่าง', endTime: 'เวลาจบ: ',
+    labelPrice: 'ราคารวม', priceNote: '(ราคา/ชม. × ระยะเวลา)',
+    btnSubmit: '✓ บันทึกการจอง',
+  },
+  en: {
+    pageBookingTitle: 'Book a Massage', pageBookingSubtitle: 'Fill in the details to make a booking',
+    step1: 'Customer Info', step2: 'Date & Service', step3: 'Duration / Therapist / Bed', step4: 'Select Start Time',
+    labelName: 'Customer Name *', labelPhone: 'Phone Number', labelDate: 'Date *', labelService: 'Service *',
+    labelDuration: 'Duration (min) *', labelTherapist: 'Therapist *', labelBed: 'Bed *',
+    selectService: '-- Select Service --', selectDuration: '-- Select --', selectTherapist: '-- Select Therapist --', selectBed: '-- Select Bed --',
+    slotFree: 'Free', slotBusy: 'Busy', endTime: 'End Time: ',
+    labelPrice: 'Total Price', priceNote: '(Price/hr × Duration)',
+    btnSubmit: '✓ Confirm Booking',
+  }
+};
+
+let currentLang = localStorage.getItem('lang') || 'th';
+
+function toggleLang() {
+  currentLang = currentLang === 'th' ? 'en' : 'th';
+  localStorage.setItem('lang', currentLang);
+  applyLang();
+}
+
+function applyLang() {
+  const t = I18N[currentLang];
+  const isEN = currentLang === 'en';
+
+  // ปุ่มสลับ
+  ['langBtnMobile','langBtnSidebar'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = isEN ? '🌐 EN / TH' : '🌐 TH / EN';
+  });
+
+  // === Booking page เท่านั้น ===
+  const q = s => document.querySelector(s);
+  const qa = s => document.querySelectorAll(s);
+
+  // หัวข้อหน้า
+  const bookTitle = q('#page-booking .font-display.text-2xl');
+  if (bookTitle) bookTitle.textContent = t.pageBookingTitle;
+  const bookSub = q('#page-booking .text-stone.text-sm');
+  if (bookSub) bookSub.textContent = t.pageBookingSubtitle;
+
+  // Step headers
+  const stepTexts = [t.step1, t.step2, t.step3, t.step4];
+  qa('#bookingForm .form-step-label').forEach((el, i) => { if (stepTexts[i]) el.textContent = stepTexts[i]; });
+
+  // Form labels
+  const labelMap = { 0: t.labelName, 1: t.labelPhone, 2: t.labelDate, 3: t.labelService,
+    4: t.labelDuration, 5: t.labelTherapist, 6: t.labelBed };
+  qa('#bookingForm .form-label').forEach((el, i) => { if (labelMap[i]) el.textContent = labelMap[i]; });
+
+  // Select placeholders
+  const durSel = document.getElementById('duration');
+  if (durSel?.options[0]) durSel.options[0].text = t.selectDuration;
+  const svcSel = document.getElementById('service');
+  if (svcSel?.options[0]) svcSel.options[0].text = t.selectService;
+  const svcPlaceholder = document.getElementById('svcTriggerInner');
+  if (svcPlaceholder?.classList.contains('svc-trigger-placeholder')) svcPlaceholder.textContent = t.selectService;
+  const thrSel = document.getElementById('therapist');
+  if (thrSel?.options[0]) thrSel.options[0].text = t.selectTherapist;
+  const bedSel = document.getElementById('bed');
+  if (bedSel?.options[0]) bedSel.options[0].text = t.selectBed;
+
+  // Duration options (นาที/min)
+  const minLabel = isEN ? ' min' : ' นาที';
+  if (durSel) [60,90,120,150,180,210,240].forEach((v, i) => {
+    if (durSel.options[i+1]) durSel.options[i+1].text = v + minLabel;
+  });
+
+  // Slot legend
+  const swatches = qa('.slot-legend-item span');
+  if (swatches[0]) swatches[0].textContent = t.slotFree;
+  if (swatches[1]) swatches[1].textContent = t.slotBusy;
+
+  // End time label
+  const endLbl = q('#endTimeDisplay .text-stone');
+  if (endLbl) endLbl.textContent = t.endTime;
+
+  // Price row
+  const priceLbl = q('.booking-price-row .text-stone');
+  if (priceLbl) priceLbl.innerHTML = t.labelPrice + ' <span class="price-note">' + t.priceNote + '</span>';
+
+  // Submit button
+  const submitBtn = q('[onclick="submitBooking()"]');
+  if (submitBtn) submitBtn.textContent = t.btnSubmit;
+}
+
+// Apply ภาษาทันทีที่โหลด
+applyLang();
 </script>
 </body>
 </html>
